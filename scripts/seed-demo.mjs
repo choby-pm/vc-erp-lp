@@ -19,7 +19,8 @@ const ORGS = [
   { key: 'b', id: '0b000000-0000-4000-8000-00000000000b', name: '바다성장출자 (데모)', org_type: 'policy',
     users: { officer: '정민재', approver: '한수아', admin: '오세진' } },
 ];
-const ROLE_LABEL = { officer: '출자 담당', approver: '결재권자', admin: '관리자' };
+const DEFAULT_CRITERIA = [['운용 인력', 0.3], ['운용 성과', 0.25], ['투자 전략', 0.25], ['조합 조건', 0.2]];
+const ROLE_LABEL ={ officer: '출자 담당', approver: '결재권자', admin: '관리자' };
 const demoEmail = (org, role) => `${role}@${org}.demo.lp-erp.dev`;
 
 // lib/auth/password.ts 와 같은 형식: scrypt$<salt>$<hash>
@@ -54,6 +55,13 @@ try {
             set name = excluded.name, role = excluded.role, password_hash = excluded.password_hash, disabled_at = null
         `;
         lines.push(`| ${ROLE_LABEL[role]} | ${name} | ${email} | \`${password}\` |`);
+      }
+      // 기본 심사 평가 항목 (가중치 합계 100%, BR-EVAL-01). 항목이 하나도 없는 기관에만 넣는다 ⚠️ 기관마다 기준이 다름
+      const [{ n }] = await tx`select count(*)::int as n from evaluation_criteria where org_id = ${org.id}`;
+      if (n === 0) {
+        for (const [i, [cname, weight]] of DEFAULT_CRITERIA.entries()) {
+          await tx`insert into evaluation_criteria (org_id, name, weight_ratio, sort_order) values (${org.id}, ${cname}, ${weight}, ${i})`;
+        }
       }
     }
   });

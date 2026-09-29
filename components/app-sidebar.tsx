@@ -29,6 +29,10 @@ const SECTIONS: { title: string; items: Item[]; adminOnly?: boolean }[] = [
     title: "출자 업무",
     items: [
       { href: "/", label: "대시보드", icon: icon("M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z") },
+      { href: "/approvals", label: "결재함", icon: icon("M9 12l2 2 4-4M12 3l7 4v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V7z") },
+      { href: "/budgets", label: "출자 예산", icon: icon("M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6") },
+      { href: "/programs", label: "출자사업", icon: icon("M3 11l18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6") },
+      { href: "/proposals", label: "출자 제안", icon: icon("M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11") },
       { href: "/funds", label: "조합", icon: icon("M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6") },
     ],
   },
@@ -41,6 +45,7 @@ const SECTIONS: { title: string; items: Item[]; adminOnly?: boolean }[] = [
     adminOnly: true,
     items: [
       { href: "/users", label: "사용자", icon: icon("M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.87M16 4.13a3 3 0 0 1 0 5.74") },
+      { href: "/evaluation-criteria", label: "평가 항목", icon: icon("M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z") },
       { href: "/audit-logs", label: "감사 로그", icon: icon("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5") },
     ],
   },
@@ -51,11 +56,13 @@ export default function AppSidebar({
   userName,
   userRole,
   initialFolded,
+  pendingApprovals = 0,
 }: {
   orgName: string;
   userName: string;
   userRole: Role;
   initialFolded: boolean;
+  pendingApprovals?: number; // 내가 결재할 대기 건수 (결재권자·관리자)
 }) {
   const sections = SECTIONS.filter((s) => !s.adminOnly || userRole === "admin");
   const pathname = usePathname();
@@ -87,12 +94,17 @@ export default function AppSidebar({
                     aria-current={active ? "page" : undefined}
                     title={compact ? item.label : undefined}
                     onClick={() => setOpen(false)}
-                    className={`flex items-center rounded-lg py-2 text-sm font-medium ${compact ? "justify-center px-2" : "gap-3 px-3"} ${
+                    className={`relative flex items-center rounded-lg py-2 text-sm font-medium ${compact ? "justify-center px-2" : "gap-3 px-3"} ${
                       active ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >
                     {item.icon}
                     <span className={compact ? "sr-only" : ""}>{item.label}</span>
+                    {item.href === "/approvals" && pendingApprovals > 0 && (
+                      <span aria-label={`결재 대기 ${pendingApprovals}건`} className={`rounded-full bg-amber-500 text-[11px] font-bold leading-none text-white ${compact ? "absolute ml-5 -mt-5 px-1.5 py-0.5" : "ml-auto px-2 py-1"}`}>
+                        {pendingApprovals}
+                      </span>
+                    )}
                     {!compact && <LinkPending />}
                   </Link>
                 </li>

@@ -61,7 +61,11 @@ async function errorCodeOf(res: Response) {
 
 // 요청 본문을 읽고 검사한다. 문제가 있으면 400 VALIDATION_ERROR (항목별 안내 포함)
 export async function parseBody<T extends z.ZodType>(request: Request, schema: T): Promise<z.infer<T>> {
-  const body = await readJson(request);
+  return validateBody(await readJson(request), schema);
+}
+
+// 이미 읽은 본문을 검사한다 (멱등성 처리처럼 본문을 먼저 읽어야 하는 경우)
+export function validateBody<T extends z.ZodType>(body: unknown, schema: T): z.infer<T> {
   if (body === null) throw new AppError(400, "VALIDATION_ERROR", "요청 형식이 올바르지 않습니다");
 
   const result = schema.safeParse(body);

@@ -91,7 +91,7 @@ LP ERP에 더하는 것:
 | GET · PATCH | `/budgets/{budget_id}` | 상세 · 총액 수정 | BR-BUD-06 |
 | PUT | `/budgets/{budget_id}/allocations` | 분야별 배분 통째로 저장 | BR-BUD-02 |
 | GET · POST | `/programs` | 출자사업 목록 · 작성 | |
-| GET · PATCH | `/programs/{program_id}` | 상세(부문별 접수·선정 현황) · 수정 | |
+| GET · PATCH · DELETE | `/programs/{program_id}` | 상세(부문별 접수·선정 현황, 예산 잔액) · 수정 · 삭제 (수정·삭제는 작성 중에만) | BR-PRG-02 |
 | POST · PATCH · DELETE | `/programs/{program_id}/tracks[/{track_id}]` | 모집 부문 (`draft` 에서만) | BR-PRG-02 |
 | POST 🔄 | `/programs/{program_id}/open` · `/start-review` · `/close` | 공고 · 심사 시작 · 선정 완료 | BR-PRG-01, 03 |
 

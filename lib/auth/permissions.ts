@@ -25,8 +25,12 @@ const RULES: Rule[] = [
   // 기준 정보
   { pattern: /^\/gps(\/|$)/, write: ["officer"], area: "운용사 등록·수정" },
   { pattern: new RegExp(`^/funds(/${ID})?(/status)?$`), write: ["officer"], area: "조합 등록·수정" },
+  // 출자 계획
+  { pattern: /^\/budgets(\/|$)/, write: ["officer"], area: "출자 예산" },
+  { pattern: /^\/programs(\/|$)/, write: ["officer"], area: "출자사업" },
   // 심사 평가는 출자 담당·결재권자 모두 심사위원이 될 수 있다
   { pattern: new RegExp(`^/proposals/${ID}/evaluations/${ID}$`), write: ["officer", "approver"], area: "심사 평가" },
+  { pattern: /^\/proposals(\/|$)/, write: ["officer"], area: "출자 제안" },
 ];
 const DEFAULT_WRITE: Role[] = ["officer"];
 

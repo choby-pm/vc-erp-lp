@@ -82,7 +82,7 @@
   - `draft → open`: 모집 부문 1개 이상, 접수 시작일 ≤ 종료일
   - `open → reviewing`: 접수 종료일이 지났거나 담당자가 접수를 마감할 때
   - `reviewing → closed`: 접수된 모든 제안이 `selected` / `rejected` / `withdrawn` 이고, 선정 결재 대기가 없을 때 (`PROGRAM_HAS_OPEN_PROPOSALS`)
-- **BR-PRG-02 모집 부문 수정**: `draft` 에서만 추가·수정·삭제한다. 공고 후에는 조건이 바뀌면 안 된다 (`DOCUMENT_LOCKED`).
+- **BR-PRG-02 모집 부문 수정**: `draft` 에서만 추가·수정·삭제한다. 공고 후에는 조건이 바뀌면 안 된다 (`DOCUMENT_LOCKED`). 사업 정보(이름·접수 기간·예산)도 같다. 작성 중인 사업은 부문과 함께 삭제할 수 있다 (R2-2). 공고하려면 부문이 1개 이상 (`TRACK_REQUIRED`), 한 사업 안에서 부문 이름은 하나 (`DUPLICATE_TRACK`).
 - **BR-PRG-03 부문 합계**: 부문 출자 예정액 합계가 예산 잔액을 넘으면 공고할 때 **경고만** 한다 (실제 차단은 선정 때, BR-BUD-04).
 - **BR-PRG-04 접수**: 공고형 제안은 사업이 `open` 이고 접수일이 접수 기간 안일 때만 등록할 수 있다 (`PROGRAM_NOT_OPEN`).
 - **BR-PRG-05 부문 한도**: 한 부문의 선정 예정액 합계 ≤ 부문 출자 예정액 (`TRACK_AMOUNT_EXCEEDED`). 선정 GP 수는 넘으면 **경고만** ⚠️.
@@ -342,6 +342,13 @@
 | `BUDGET_EXCEEDED` | BR-BUD-04 | 예산 잔액을 넘습니다 (잔액 표시) |
 | `BUDGET_BELOW_USAGE` | BR-BUD-06 | 이미 사용한 금액보다 작게 줄일 수 없습니다 |
 | `PROGRAM_NOT_OPEN` | BR-PRG-04 | 접수 중인 출자사업이 아닙니다 |
+| `SELECTION_TERMS_INVALID` | BR-SEL-01 | 선정 조건을 확인하세요 (결성 기한 경과 등) |
+| `APPROVAL_DECIDED` | BR-APR-07 | 이미 결정된 결재입니다 |
+| `IDEMPOTENCY_KEY_REQUIRED` · `IDEMPOTENCY_KEY_REUSED` | L13 | 중복 처리 방지 키가 없거나 다른 요청에 다시 쓰였습니다 |
+| `FUND_CLOSED` | BR-PROP-02 | 해산·청산된 조합에는 출자 제안을 등록할 수 없습니다 |
+| `DUPLICATE_CRITERION` | BR-EVAL-01 | 같은 이름의 평가 항목이 이미 있습니다 |
+| `TRACK_REQUIRED` | BR-PRG-01·02 | 모집 부문을 1개 이상 만드세요 |
+| `DUPLICATE_TRACK` | BR-PRG-02 | 같은 이름의 모집 부문이 이미 있습니다 |
 | `PROGRAM_HAS_OPEN_PROPOSALS` | BR-PRG-01 | 결정하지 않은 제안이 남아 있습니다 |
 | `TRACK_AMOUNT_EXCEEDED` | BR-PRG-05 | 모집 부문의 출자 예정액을 넘습니다 |
 | `DUPLICATE_PROPOSAL` | BR-PROP-01 | 이 조합의 제안이 이미 있습니다 (기존 제안 표시) |

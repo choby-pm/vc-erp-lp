@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { withJosa } from "@/lib/format";
 
 type ApiError = { error?: { message?: string } };
 
@@ -72,7 +73,7 @@ export default function LoginForm({ orgs }: { orgs: { key: string; name: string 
               className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-left hover:bg-emerald-100 disabled:opacity-60"
             >
               <span>
-                <span className="block text-sm font-semibold text-emerald-900">{r.label}로 들어가기</span>
+                <span className="block text-sm font-semibold text-emerald-900">{withJosa(r.label, "으로")} 들어가기</span>
                 <span className="block text-xs text-emerald-700">{r.hint}</span>
               </span>
               <span className="text-sm text-emerald-700">{pending === `demo-${r.role}` ? "…" : "→"}</span>

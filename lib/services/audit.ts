@@ -45,3 +45,29 @@ export async function writeAudit(e: AuditEntry) {
     console.error("감사 로그 기록 실패", err);
   }
 }
+
+// ─── 조회 (감사 로그 화면, 관리자) ─────────────────────────────────────────
+
+export type AuditLog = {
+  id: string;
+  occurred_at: Date;
+  actor_type: AuditActor;
+  user_name: string | null;
+  user_role: string | null;
+  action: string;
+  status: number;
+  error_code: string | null;
+  ip: string | null;
+};
+
+// 우리 기관 기록만 (BR-AUTH-04). 기관을 알 수 없는 로그인 실패는 여기 보이지 않는다
+export async function listAuditLogs(orgId: string, filter: { result?: "ok" | "fail" | "denied" } = {}) {
+  return sql<AuditLog[]>`
+    select id, occurred_at, actor_type, user_name, user_role, action, status, error_code, ip
+    from audit_logs
+    where org_id = ${orgId}
+      ${filter.result === "ok" ? sql`and status < 400` : filter.result === "denied" ? sql`and status = 403` : filter.result === "fail" ? sql`and status >= 400` : sql``}
+    order by occurred_at desc
+    limit 200
+  `;
+}

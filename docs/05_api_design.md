@@ -78,9 +78,10 @@ LP ERP에 더하는 것:
 | GET · POST | `/gps` | 운용사 목록(연동 여부 표시) · 등록 | 모두 · 담 |
 | GET · PATCH | `/gps/{gp_id}` | 상세(조합·출자 이력) · 수정 | 모두 · 담 |
 | GET | `/funds?status=&strategy=&data_source=&gp_id=` | 조합 목록 | 모두 |
+| POST | `/funds` | 수기 조합 등록 (L18, 연동 GP는 불가) | 담 |
 | GET | `/funds/{fund_id}` | 조합 + 제안 + 출자 건 요약 + 동기화 시각 | 모두 |
 | PATCH | `/funds/{fund_id}` | 수기 조합 정보 수정 (연동은 GP 값 불가) | 담 |
-| POST 🔄 | `/funds/{fund_id}/status` | 수기 조합 상태 변경 `{ "status": "formed", "date": "…" }` | 담 |
+| POST 🔄 | `/funds/{fund_id}/status` | 수기 조합 상태 변경 `{ "status": "formed", "formation_date": "…", "fund_size_amount": … }` (BR-FUND-02) | 담 |
 | POST 🔄 | `/funds/{fund_id}/resync` | GP와 다시 맞추기 (BR-SYNC-09) | 담 |
 
 ### 3-4. 출자 계획 · 출자사업

@@ -5,6 +5,7 @@
 //   ② GP에 이 출자자 ID가 정말 있는지 GP 연동 API로 확인 (키·주소가 맞는지도 함께 확인된다)
 //   ③ 그 기관의 운용사 목록에 연동 GP 한 줄 (gp_connection_id 채움)
 //   ④ gp_lp_links: "이 기관 = GP의 이 출자자" 연결. 한 기관은 한 GP에서 출자자 하나, GP 출자자 하나는 기관 하나에만 (DB 유일 제약)
+//   ⑤ 첫 맞추기: 이 기관이 조합원인 GP 조합을 모두 읽어 연동 조합으로 만든다 (R3-4). 연결 전 이벤트는 받지 않으므로 이것이 출발점이다 (BR-SYNC-13)
 //
 // · 다시 실행해도 같은 결과다 (이미 있으면 건너뛴다)
 // · 이미 다른 GP 출자자에 연결된 기관을 바꾸는 기능은 없다 (연결을 바꾸면 받은 데이터가 어긋나므로 따로 정리해야 한다)
@@ -41,6 +42,7 @@ if (!orgId || !UUID.test(orgId) || !gpLpId || !UUID.test(gpLpId)) {
 const jiti = createJiti(import.meta.url, { alias: { '@': path.resolve('.') } });
 const { sql } = await jiti.import('@/lib/db.ts');
 const { verifyGpLp, connectionEnv } = await jiti.import('@/lib/gp/client.ts');
+const { initialSync } = await jiti.import('@/lib/gp/sync.ts');
 
 const fail = async (message) => {
   console.error(`✖ ${message}`);
@@ -69,6 +71,7 @@ try {
   }
   console.log(`• GP 확인: 출자자 '${gpLp.name}' (${gpLp.lp_type})`);
 
+  let gpId;
   await sql.begin(async (tx) => {
     // ③ 운용사
     let [gp] = await tx`select id, gp_connection_id from gps where org_id = ${org.id} and name = ${args['gp-name']}`;
@@ -83,6 +86,7 @@ try {
       `;
       console.log(`• 운용사 '${args['gp-name']}' 등록`);
     } else console.log(`• 운용사 '${args['gp-name']}': 이미 있음`);
+    gpId = gp.id;
 
     // ④ 기관 연결
     const [link] = await tx`select gp_lp_id, gp_id from gp_lp_links where org_id = ${org.id} and gp_connection_id = ${connection.id}`;
@@ -96,6 +100,18 @@ try {
       console.log(`• 기관 연결: '${org.name}' = GP 출자자 '${gpLp.name}'`);
     } else console.log(`• 기관 연결: 이미 있음`);
   });
+
+  // ⑤ 첫 맞추기 (다시 실행해도 같은 결과)
+  const synced = await initialSync(org.id, gpId);
+  for (const s of synced) {
+    const ledger = s.result.ledger
+      ? s.result.ledger.skipped
+        ? ' · 원장 사본: 출자 건이 없어 건너뜀 (R3-6 가져온 출자 건 때 읽음)'
+        : ` · 원장 사본 새로 ${s.result.ledger.inserted}건`
+      : '';
+    console.log(`• 첫 맞추기: 조합 '${s.fund}'${ledger}`);
+  }
+  if (synced.length === 0) console.log('• 첫 맞추기: GP에서 조합원인 조합이 없습니다');
 
   console.log(`\n✔ 연결 확인됨: '${org.name}' → GP 출자자 '${gpLp.name}'`);
   console.log(`  GP 쪽 웹훅 주소(LP_SYSTEM_WEBHOOK_URL): <LP 주소>/api/webhooks/gp/${connection.id}`);

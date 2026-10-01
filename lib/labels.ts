@@ -101,3 +101,23 @@ export const PROGRAM_STATUS_STYLE: Record<ProgramStatus, string> = {
   reviewing: "bg-sky-100 text-sky-700",
   closed: "bg-emerald-100 text-emerald-700",
 };
+
+// GP 연동 받은 이벤트 (R3-3, inbound_events)
+export type InboundEventStatus = "received" | "processed" | "failed" | "ignored";
+export const INBOUND_STATUS_LABEL: Record<InboundEventStatus, string> = { received: "받음 (처리 전)", processed: "처리됨", failed: "실패", ignored: "무시" };
+export const INBOUND_STATUS_STYLE: Record<InboundEventStatus, string> = {
+  received: "bg-sky-100 text-sky-700",
+  processed: "bg-emerald-100 text-emerald-700",
+  failed: "bg-rose-100 text-rose-700",
+  ignored: "bg-slate-100 text-slate-500",
+};
+// 🔗 GP 이벤트 종류 (GP lib/services/events.ts)
+export const GP_EVENT_TYPE_LABEL: Record<string, string> = {
+  "fund.status_changed": "조합 상태 변경",
+  "fund.updated": "조합 정보 변경",
+  "fund.terms_updated": "규약 변경",
+  "notice.sent": "통지 발송",
+  "member.joined": "조합원 가입",
+  "ledger.entry_created": "원장 기록",
+  "meeting.result_finalized": "총회 결과 확정",
+};

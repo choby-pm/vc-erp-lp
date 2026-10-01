@@ -1,7 +1,8 @@
 import Link from "next/link";
 import FundStatusPanel from "@/components/fund-status-panel";
+import { ResyncButton } from "@/components/integration-actions";
 import { getCurrentUser } from "@/lib/auth/session";
-import { formatDate, formatKRW, formatPercent } from "@/lib/format";
+import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
 import { DATA_SOURCE_LABEL, FUND_STATUSES, FUND_STATUS_LABEL, FUND_TYPE_LABEL, STRATEGY_LABEL } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
 import { getFund } from "@/lib/services/funds";
@@ -68,9 +69,12 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
       </ol>
 
       {fund.data_source === "gp_api" && (
-        <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          GP에서 받은 조합입니다. 정보와 상태는 GP와 동기화될 때만 바뀝니다. 마지막 동기화: {fund.last_synced_at ? formatDate(fund.last_synced_at) : "-"}
-        </p>
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+          <p>
+            GP에서 받은 조합입니다. 정보와 상태는 GP와 동기화될 때만 바뀝니다. 마지막 동기화: {fund.last_synced_at ? formatDateTime(fund.last_synced_at) : "-"}
+          </p>
+          {(me.role === "admin" || me.role === "officer") && <ResyncButton fundId={fund.id} />}
+        </div>
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white">

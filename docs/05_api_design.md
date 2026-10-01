@@ -197,7 +197,8 @@ LP ERP에 더하는 것:
 | POST 🔄 | `/integration/pull` | 놓친 이벤트 지금 가져오기 + 처리 | BR-SYNC-08 |
 | POST 🔄 | `/integration/send-pending` | 못 보낸 응답·확인·투표 지금 보내기 | BR-SYNC-11 |
 
-> 연동 **설정**(GP 주소·키 변수 이름·기관 연결)은 기관이 아니라 서비스 운영자가 정하므로 API가 없다. MVP에서는 설정 스크립트(`npm run gp:link`)로 넣는다 ⚠️.
+> 연동 **설정**(GP 주소·키 변수 이름·기관 연결)은 기관이 아니라 서비스 운영자가 정하므로 API가 없다. MVP에서는 설정 스크립트로 넣는다 ⚠️.
+> `npm run gp:link -- --org a --gp-lp-id <GP 출자자 ID>` — 연결(없으면 생성, 환경 변수 `GP_DEMO_BASE_URL`·`GP_DEMO_API_KEY`·`GP_DEMO_WEBHOOK_SECRET`) → GP `GET /lps/{id}` 로 확인 → 기관의 운용사 목록에 연동 GP(기본 이름 'VC ERP 데모 운용사') → 기관 연결. 다시 실행해도 같은 결과 (R3-2)
 
 ---
 
@@ -338,6 +339,7 @@ GP 저장소(`vc-erp/gp`)에 구현하고 GP 문서(05 API 설계 5-2, 99 결정
   ]
 }
 ```
+> **발송한 제안만** 준다 (발송 전 제안은 GP 내부 작업). 2026-10-01 구현 (GP D45).
 > 지금 GP의 조합 상세 API는 조합원만 볼 수 있어서, 결성 전 제안 단계의 조합 계획을 LP가 읽을 길이 없다. 그래서 제안 응답 안에 **제안 검토에 필요한 조합 정보만** 담는다 (GP 내부 메모 제외).
 
 ### 5-2. 출자 제안 응답 (새 API)
@@ -352,7 +354,8 @@ GP 저장소(`vc-erp/gp`)에 구현하고 GP 문서(05 API 설계 5-2, 99 결정
 | `committed` | `→ committed`, 확약 금액 기록 | `loc_amount > 0` (BR-PROP-02), 결정일 ≥ 제안일 (BR-PROP-06) |
 | `declined` | `→ declined` | |
 
-- **같은 요청을 다시 보내면 결과가 같다**: 이미 같은 상태·같은 금액이면 바꾸지 않고 `200` (BR-SYNC-12)
+- **같은 요청을 다시 보내면 결과가 같다**: 이미 같은 상태·같은 금액이면 바꾸지 않고 `200` + `changed: false` (BR-SYNC-12). 응답은 그 제안(5-1과 같은 모양)
+- 형식 오류(확약인데 금액 없음, 거절인데 금액 있음, 알 수 없는 `decision`)는 `400 VALIDATION_ERROR`, 결정일 < 제안일은 `422 INVALID_DATE`, 발송 안 한·다른 출자자의 제안은 `404`
 - 다른 결정으로 바꾸려 하면 `409 PROPOSAL_CLOSED` (GP BR-PROP-01: 확약·거절은 되돌릴 수 없음)
 - 조합이 기획·모집 중일 때만 (GP BR-PROP-05)
 - GP `lp_proposals` 에 `decided_via`(`gp` / `lp_system`)를 더해, GP 화면에 "LP 직접" 으로 표시한다 (🔗 GP D40 투표 `channel` 과 같은 방식). 결성 전까지 GP가 확약 금액을 고치는 것(GP BR-PROP-01)은 그대로 허용한다 ⚠️

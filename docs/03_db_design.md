@@ -346,7 +346,8 @@ LP ERP에 더하는 것:
 |---|---|---|
 | 🔑 `id` | uuid | |
 | ❗🔗 `fund_id` | uuid → funds | `(org_id, fund_id)` ✨ 한 조합에 출자 건 하나 |
-| ❗🔗 `proposal_id` | uuid → proposals | ✨ 어느 제안에서 선정됐는지 |
+| 🔗 `proposal_id` | uuid → proposals | ✨ 어느 제안에서 선정됐는지. 가져온 출자 건은 비움 (L19) |
+| ❗ `origin` | text | `selection`(선정 결재로 생김) / `imported`(이 시스템 전에 이미 출자, L19). `selection` 이면 `proposal_id` 필수 (check 제약) |
 | ❗ `status` | text | `awaiting_formation` / `active` / `cancelled` / `closed` |
 | `confirmed_date` | date | 결성 확인일 (`active` 가 된 날) |
 | `cancelled_date`, `cancel_reason` | date, text | 선정 취소 |
@@ -512,7 +513,7 @@ LP ERP에 더하는 것:
 |---|---|---|
 | 🔑 `id` | uuid | |
 | ❗ `name` | text | 예: "VC ERP (GP) 데모" |
-| ❗ `base_url` | text | GP 연동 API 주소 |
+| ❗ `base_url_env` | text | GP 연동 API 주소를 담은 **환경 변수 이름** (예: `GP_DEMO_BASE_URL`). 같은 행이 로컬·배포에서 각자 맞는 GP를 부른다 (L21) |
 | ❗ `api_key_env`, `webhook_secret_env` | text | **비밀 값 자체가 아니라 환경 변수 이름**을 저장 (예: `GP_DEMO_API_KEY`) |
 | `last_gp_event_id` | uuid | 놓친 이벤트를 받을 때의 시작 위치 |
 | `last_pulled_at` | timestamptz | |
@@ -641,5 +642,7 @@ GP 이벤트는 "무엇이 바뀌었다"만 알려준다. 이벤트 본문으로
 - **L7** DB 행 단위 보안(RLS)은 MVP에서 넣지 않는다. 서버 한 곳 검사 + 복합 외래 키 두 겹으로 막는다
 - **L8** 연동 조합의 우리 몫 평가액은 GP가 계산해 LP 연동 API로 준다
 - **L9** 캐피탈콜 한 건을 여러 번 나눠 납입할 수 있다
+- **L19** 출자 건은 제안 없이도 생긴다 (가져온 출자 건, `origin = imported`)
+- **L21** GP 주소는 환경 변수 이름으로 저장한다 (`base_url_env`)
 
 자세한 이유는 [99 결정 기록](99_decisions.md).

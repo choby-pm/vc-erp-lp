@@ -166,6 +166,7 @@
   awaiting_formation → active → closed
   awaiting_formation → cancelled
   ```
+  - 출자 건은 선정 결재 승인으로 생기거나(`origin = selection`), 연동 GP에 이미 약정이 있는 조합을 맞출 때 제안 없이 생긴다(`origin = imported`, L19). 가져온 출자 건은 선정 조건이 없어 BR-CMT-02의 2·3·4·5번을 "해당 없음"으로 본다
 - **BR-CMT-02 결성 확인 (`awaiting_formation → active`)** — 모두 만족해야 한다 (`FORMATION_CHECK_FAILED`, 부족한 조건 목록 함께)
   1. 조합 상태가 `formed` 또는 `operating`
   2. 결성일 ≤ 결성 기한 ⚠️
@@ -175,6 +176,7 @@
 - **BR-CMT-03 약정액의 출처**
   - 연동 조합: GP 원장 사본의 `commitment` 합계. 결성·결성액·결성일도 GP 값
   - 수기 조합: 담당자가 약정액·결성액·결성일을 입력
+  - 가져온 출자 건(연동): 위 연동 조합과 같다. 맞추기 처리에서 결성 확인까지 바로 한다
 - **BR-CMT-04 확인하면 (한 트랜잭션)**: 우리 장부에 `commitment` 행 추가 (날짜 = 결성일), `confirmed_date`, 대사 (BR-REC-01).
 - **BR-CMT-05 선정 취소**: `awaiting_formation` 에서만, 사유 필수. 결성 기한이 지나도 **자동으로 취소하지 않고** 주의 목록에 띄운다 ⚠️. 연동 조합이어도 GP에는 알리지 않는다 (GP에 받을 API가 없음, 고도화).
 - **BR-CMT-06 약정 변경**: 결성 후 약정이 바뀌면(연동: GP 원장에 새 행) 장부에 취소 행 + 새 행을 담당자가 확인해 추가한다. 그 전까지는 대사가 불일치로 보인다.
@@ -377,6 +379,8 @@
 | `CLOSE_CHECK_FAILED` | BR-CLOSE-01 | 청산 확인 조건을 채우지 못했습니다 (조건 목록 표시) |
 | `INVALID_DATE` | 여러 곳 | 날짜를 확인하세요 |
 | `GP_UNAVAILABLE` | BR-SYNC-10 | GP 시스템에 연결하지 못했습니다. 저장은 되었고 나중에 다시 보냅니다 |
+| `GP_NOT_CONFIGURED` | | GP 연동 환경 변수가 비어 있거나 GP가 API 키를 받지 않았습니다 (운영자 설정 문제, R3-2) |
+| `GP_REJECTED` | BR-PROP-06 | GP가 업무 규칙으로 요청을 거부했습니다 (GP의 오류 코드·메시지 함께). 다시 보내도 같은 결과라 재시도하지 않는다 (R3-2) |
 
 ---
 

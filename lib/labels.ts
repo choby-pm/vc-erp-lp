@@ -121,3 +121,35 @@ export const GP_EVENT_TYPE_LABEL: Record<string, string> = {
   "ledger.entry_created": "원장 기록",
   "meeting.result_finalized": "총회 결과 확정",
 };
+
+// 출자 건 (R3-6, BR-CMT-01)
+export const COMMITMENT_STATUSES = ["awaiting_formation", "active", "cancelled", "closed"] as const;
+export type CommitmentStatus = (typeof COMMITMENT_STATUSES)[number];
+export const COMMITMENT_STATUS_LABEL: Record<CommitmentStatus, string> = {
+  awaiting_formation: "결성 대기",
+  active: "활성",
+  cancelled: "선정 취소",
+  closed: "청산 확인",
+};
+export const COMMITMENT_STATUS_STYLE: Record<CommitmentStatus, string> = {
+  awaiting_formation: "bg-amber-100 text-amber-800",
+  active: "bg-emerald-100 text-emerald-700",
+  cancelled: "bg-slate-200 text-slate-500",
+  closed: "bg-slate-100 text-slate-700",
+};
+export type CommitmentOrigin = "selection" | "imported";
+export const COMMITMENT_ORIGIN_LABEL: Record<CommitmentOrigin, string> = {
+  selection: "선정 결재",
+  imported: "가져온 출자 건",
+};
+export type ReconStatus = "matched" | "mismatched" | "resolved";
+export const RECON_STATUS_LABEL: Record<ReconStatus, string> = {
+  matched: "일치",
+  mismatched: "불일치",
+  resolved: "확인 완료",
+};
+export const RECON_STATUS_STYLE: Record<ReconStatus, string> = {
+  matched: "bg-emerald-100 text-emerald-700",
+  mismatched: "bg-rose-100 text-rose-700",
+  resolved: "bg-sky-100 text-sky-700",
+};

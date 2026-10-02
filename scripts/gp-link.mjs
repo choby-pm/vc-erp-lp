@@ -106,10 +106,11 @@ try {
   for (const s of synced) {
     const ledger = s.result.ledger
       ? s.result.ledger.skipped
-        ? ' · 원장 사본: 출자 건이 없어 건너뜀 (R3-6 가져온 출자 건 때 읽음)'
+        ? ' · 원장 사본: 출자 건이 없어 건너뜀 (아직 선정 전인 제안이 있음)'
         : ` · 원장 사본 새로 ${s.result.ledger.inserted}건`
       : '';
-    console.log(`• 첫 맞추기: 조합 '${s.fund}'${ledger}`);
+    const imported = s.result.imported === 'confirmed' ? ' · 가져온 출자 건 결성 확인' : s.result.imported === 'created' ? ' · 가져온 출자 건 (결성 대기)' : '';
+    console.log(`• 첫 맞추기: 조합 '${s.fund}'${ledger}${imported}`);
   }
   if (synced.length === 0) console.log('• 첫 맞추기: GP에서 조합원인 조합이 없습니다');
   const INTAKE = { created: '새로 접수', updated: '요청액 갱신', unchanged: '이미 접수됨', skipped: '건너뜀' };

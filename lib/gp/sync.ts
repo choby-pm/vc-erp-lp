@@ -4,6 +4,7 @@ import { gpClient, type GpActor } from "@/lib/gp/client";
 import { SYNC_JOB, pullConnection, type PullResult } from "@/lib/gp/inbox";
 import { runExclusive, type JobTrigger } from "@/lib/services/jobs";
 import { reconcile, type EntryType } from "@/lib/services/reconciliation";
+import { autoConfirmImported, ensureImportedCommitment } from "@/lib/services/commitments";
 
 // 받은 GP 이벤트 처리 — 동기화 (R3-4, 03 DB 설계 5장, 04 비즈니스 규칙 10-1)
 // · 이벤트는 "무엇이 바뀌었다"는 신호일 뿐이다. 본문으로 데이터를 만들지 않고 GP API로 다시 읽어 반영한다 (BR-SYNC-05)
@@ -37,7 +38,7 @@ type GpFundCore = {
   term_years: number;
   investment_period_years: number;
 };
-type GpFundDetail = { fund: GpFundCore & { total_commitment_amount: number }; terms: GpTerms };
+type GpFundDetail = { fund: GpFundCore & { total_commitment_amount: number }; terms: GpTerms; my: { commitment_amount: number } };
 type GpProposal = {
   id: string;
   status: "proposed" | "reviewing" | "committed" | "declined";
@@ -52,7 +53,7 @@ const rate = (v: number | null | undefined) => (v === null || v === undefined ? 
 
 // ─── 조합 · 원장 맞추기 ─────────────────────────────────────────────────────
 
-export type FundSyncResult = { fund_id: string | null; source: "member" | "proposal" | null; ledger?: LedgerSyncResult };
+export type FundSyncResult = { fund_id: string | null; source: "member" | "proposal" | null; ledger?: LedgerSyncResult; imported?: "created" | "confirmed" };
 export type LedgerSyncResult = { inserted: number; skipped?: "no_commitment" };
 
 // 연동 조합 하나를 GP 현재 상태로 맞춘다.
@@ -64,10 +65,16 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
   const [existing] = await sql<{ id: string }[]>`select id from funds where org_id = ${orgId} and gp_fund_id = ${gpFundId}`;
   if (!existing && !opts.create) return { fund_id: null, source: null };
 
-  let src: { core: GpFundCore; terms: GpTerms; fundSize: number | null; source: "member" | "proposal" } | null = null;
+  let src: { core: GpFundCore; terms: GpTerms; fundSize: number | null; source: "member" | "proposal"; myCommitment?: number } | null = null;
   try {
     const d = await gp.get<GpFundDetail>(`/funds/${gpFundId}`);
-    src = { core: d.fund, terms: d.terms, fundSize: d.fund.total_commitment_amount > 0 ? d.fund.total_commitment_amount : null, source: "member" };
+    src = {
+      core: d.fund,
+      terms: d.terms,
+      fundSize: d.fund.total_commitment_amount > 0 ? d.fund.total_commitment_amount : null,
+      source: "member",
+      myCommitment: Number(d.my?.commitment_amount ?? 0),
+    };
   } catch (err) {
     // 403 = 아직 조합원이 아님 (🔵 조합 단위 데이터는 조합원만). 제안 목록에서 찾는다
     if (!(err instanceof AppError && err.code === "GP_REJECTED" && err.details?.gp_status === 403)) throw err;
@@ -77,8 +84,16 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
   if (!src) return { fund_id: existing?.id ?? null, source: null };
 
   const fundId = await upsertFund(orgId, gpId, gpFundId, src);
-  const ledger = src.source === "member" ? await syncLedger(orgId, gpId, gpFundId, fundId, opts.actor) : undefined;
-  return { fund_id: fundId, source: src.source, ledger };
+  if (src.source !== "member") return { fund_id: fundId, source: src.source };
+
+  // 조합원인데 출자 건도 제안도 없으면 가져온 출자 건 (L19). 원장 사본을 읽은 뒤, 결성됐으면 결성 확인까지 바로 (BR-CMT-03)
+  // GP 약정이 0이면 만들지 않는다 (GP는 명부를 취소해도 조합원 행을 남긴다)
+  const [had] = await sql`select 1 from commitments where org_id = ${orgId} and fund_id = ${fundId}`;
+  const commitmentId = (src.myCommitment ?? 0) > 0 ? await ensureImportedCommitment(orgId, fundId) : had ? "existing" : null;
+  const ledger = await syncLedger(orgId, gpId, gpFundId, fundId, opts.actor);
+  const confirmed = commitmentId ? await autoConfirmImported(orgId, fundId) : false;
+  const imported = confirmed ? "confirmed" : !had && commitmentId ? "created" : undefined;
+  return { fund_id: fundId, source: src.source, ledger, ...(imported ? { imported } : {}) };
 }
 
 type FundSource = { core: GpFundCore; terms: GpTerms; fundSize: number | null };
@@ -110,13 +125,13 @@ async function upsertFund(orgId: string, gpId: string, gpFundId: string, src: Fu
 }
 
 // 내 GP 원장을 사본으로 쌓는다 (추가만, 같은 GP 행은 한 번만). 사본은 출자 건에 붙으므로 출자 건이 없으면 건너뛴다.
-// 출자 건이 생길 때(선정 결재·가져온 출자 건, R3-6) 다시 읽는다. 대사는 결성 확인이 끝난 출자 건의 약정만 (R4·R6에서 납입·분배)
+// 출자 건이 생길 때(선정 결재·가져온 출자 건) 다시 읽는다. 대사는 결성 확인이 끝난 출자 건의 약정만 (R4·R6에서 납입·분배)
 export async function syncLedger(orgId: string, gpId: string, gpFundId: string, fundId: string, actor?: GpActor): Promise<LedgerSyncResult> {
   const [commitment] = await sql<{ id: string; status: string }[]>`select id, status from commitments where org_id = ${orgId} and fund_id = ${fundId}`;
   if (!commitment) return { inserted: 0, skipped: "no_commitment" };
 
   const gp = await gpClient(orgId, gpId, actor);
-  const entries = await gp.get<GpLedgerEntry[]>(`/funds/${gpFundId}/ledger`);
+  const { entries } = await gp.get<{ entries: GpLedgerEntry[] }>(`/funds/${gpFundId}/ledger`); // 🔗 GP lpLedger: { entries, totals }
   return sql.begin(async (tx) => {
     const t = tx as unknown as typeof sql;
     const changed = new Set<EntryType>();
@@ -204,14 +219,15 @@ export async function syncProposals(orgId: string, gpId: string, opts: { gpFundI
   return results;
 }
 
-// 연결 직후 첫 맞추기: 이 기관이 조합원인 GP 조합 + 받은 출자 제안을 모두 읽는다 (gp:link 마지막 단계, R3-4·R3-5)
+// 연결 직후 첫 맞추기: 받은 출자 제안 + 이 기관이 조합원인 GP 조합을 모두 읽는다 (gp:link 마지막 단계, R3-4·R3-5)
+// 제안을 먼저 접수한다: 조합을 먼저 읽으면 제안이 아직 없어 진행 중인 제안의 조합이 "가져온 출자 건"이 될 수 있다 (L25)
 // 다시 실행해도 결과가 같다
 export async function initialSync(orgId: string, gpId: string, actor?: GpActor) {
   const gp = await gpClient(orgId, gpId, actor);
+  const proposals = await syncProposals(orgId, gpId, { actor });
   const funds = await gp.get<{ fund_id: string; fund_name: string }[]>("/funds");
   const results: { fund: string; result: FundSyncResult }[] = [];
   for (const f of funds) results.push({ fund: f.fund_name, result: await syncFund(orgId, gpId, f.fund_id, { create: true, actor }) });
-  const proposals = await syncProposals(orgId, gpId, { actor });
   return { funds: results, proposals };
 }
 

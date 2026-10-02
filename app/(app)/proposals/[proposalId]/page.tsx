@@ -5,7 +5,7 @@ import LinkedProposalEdit from "@/components/linked-proposal-edit";
 import ProposalActions from "@/components/proposal-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
-import { FINAL_PROPOSAL_STATUSES, FUND_STATUS_LABEL, PROPOSAL_CHANNEL_LABEL, PROPOSAL_STATUS_LABEL, PROPOSAL_STATUS_STYLE, REVIEW_STAGES } from "@/lib/labels";
+import { COMMITMENT_STATUS_LABEL, type CommitmentStatus, FINAL_PROPOSAL_STATUSES, FUND_STATUS_LABEL, PROPOSAL_CHANNEL_LABEL, PROPOSAL_STATUS_LABEL, PROPOSAL_STATUS_STYLE, REVIEW_STAGES } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
 import ProposalEdit from "@/components/proposal-edit";
 import SelectionPanel from "@/components/selection-panel";
@@ -163,11 +163,11 @@ export default async function ProposalDetailPage(props: PageProps<"/proposals/[p
       )}
       {commitment && (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          선정되어 출자 건이 만들어졌습니다 — {commitment.status === "awaiting_formation" ? "결성 대기" : commitment.status}.{" "}
-          <Link href={`/funds/${p.fund_id}`} className="font-semibold underline">
-            조합 화면
+          선정되어 출자 건이 만들어졌습니다 — {COMMITMENT_STATUS_LABEL[commitment.status as CommitmentStatus]}.{" "}
+          <Link href={`/commitments/${commitment.id}`} className="font-semibold underline">
+            출자 건 화면
           </Link>
-          에서 결성 확인을 이어갑니다 (R3).
+          에서 결성 확인을 이어갑니다.
         </p>
       )}
 

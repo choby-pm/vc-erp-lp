@@ -33,6 +33,7 @@ const SECTIONS: { title: string; items: Item[]; adminOnly?: boolean }[] = [
       { href: "/budgets", label: "출자 예산", icon: icon("M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6") },
       { href: "/programs", label: "출자사업", icon: icon("M3 11l18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6") },
       { href: "/proposals", label: "출자 제안", icon: icon("M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11") },
+      { href: "/commitments", label: "출자 건", icon: icon("M4 4h16v16H4zM8 9h8M8 13h8M8 17h5") },
       { href: "/funds", label: "조합", icon: icon("M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6") },
     ],
   },

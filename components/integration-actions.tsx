@@ -93,3 +93,67 @@ export function ResyncButton({ fundId }: { fundId: string }) {
     </span>
   );
 }
+
+type GpSync = { status: "not_needed" | "sent" | "pending" | "rejected"; message?: string };
+const GP_SYNC_MESSAGE: Record<GpSync["status"], string> = {
+  not_needed: "보낼 응답이 없습니다",
+  sent: "GP에 보냈습니다",
+  pending: "GP에 닿지 못했습니다. 나중에 자동으로 다시 보냅니다",
+  rejected: "GP가 거부했습니다",
+};
+
+// 제안 화면의 "GP에 다시 보내기" (BR-SYNC-11)
+export function ResendGpResponseButton({ proposalId }: { proposalId: string }) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function resend() {
+    setPending(true);
+    setMessage(null);
+    const res = await fetch(`/api/v1/proposals/${proposalId}/gp-response/resend`, { method: "POST" });
+    const body = await res.json().catch(() => ({}));
+    setPending(false);
+    if (!res.ok) return setMessage(body.error?.message ?? "보내지 못했습니다");
+    const r = body.data as GpSync;
+    setMessage(r.status === "sent" ? null : `${GP_SYNC_MESSAGE[r.status]}${r.message ? ` — ${r.message}` : ""}`);
+    router.refresh();
+  }
+
+  return (
+    <span className="inline-flex shrink-0 flex-col items-end gap-1">
+      <button type="button" onClick={resend} disabled={pending} className="rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-60">
+        {pending ? "보내는 중…" : "GP에 다시 보내기"}
+      </button>
+      {message && <span className="max-w-xs text-right text-xs text-rose-700">{message}</span>}
+    </span>
+  );
+}
+
+// GP 연동 화면의 "못 보낸 것 지금 보내기" (관리자, BR-SYNC-11)
+export function SendPendingButton() {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function send() {
+    setPending(true);
+    setMessage(null);
+    const res = await fetch("/api/v1/integration/send-pending", { method: "POST" });
+    const body = await res.json().catch(() => ({}));
+    setPending(false);
+    if (!res.ok) return setMessage(body.error?.message ?? "보내지 못했습니다");
+    const r = body.data as { sent: number; pending: number; rejected: number };
+    setMessage(`보냄 ${r.sent}건 · 아직 못 보냄 ${r.pending}건 · GP 거부 ${r.rejected}건`);
+    router.refresh();
+  }
+
+  return (
+    <span className="inline-flex shrink-0 flex-col items-end gap-1">
+      <button type="button" onClick={send} disabled={pending} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+        {pending ? "보내는 중…" : "못 보낸 것 지금 보내기"}
+      </button>
+      {message && <span className="text-xs text-slate-600">{message}</span>}
+    </span>
+  );
+}

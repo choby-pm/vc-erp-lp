@@ -52,6 +52,13 @@ export const proposalUpdateSchema = z.object({
 });
 export type ProposalUpdateInput = z.infer<typeof proposalUpdateSchema>;
 
+// 연동 제안: 금액·접수일은 GP 값이라 메모와 공고 부문만 (R3-5, BR-PROP-03). 부문을 비우면 개별 제안으로 돌아간다
+export const linkedProposalUpdateSchema = z.object({
+  program_track_id: z.uuid("모집 부문을 고르세요").nullish(),
+  memo: optionalText(1000, "메모는 1000자 이하로 입력하세요"),
+});
+export type LinkedProposalUpdateInput = z.infer<typeof linkedProposalUpdateSchema>;
+
 export const stageMoveSchema = z.object({
   to_status: z.enum(REVIEW_STAGES.filter((s) => s !== "received") as [string, ...string[]], "옮길 심사 단계를 고르세요"),
   note: optionalText(500, "메모는 500자 이하로 입력하세요"),

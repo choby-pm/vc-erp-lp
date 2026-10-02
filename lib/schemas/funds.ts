@@ -36,6 +36,10 @@ export const fundSchema = z
   });
 export type FundInput = z.infer<typeof fundSchema>;
 
+// 연동 조합: GP 값이 아닌 LP 쪽 분류(분야)만 고칠 수 있다 (R3-5, R3-4 검수 C1)
+export const linkedFundSchema = z.object({ strategy: z.enum(STRATEGIES, "분야를 고르세요") });
+export type LinkedFundInput = z.infer<typeof linkedFundSchema>;
+
 export const fundCreateSchema = fundSchema.and(
   z.object({
     gp_id: z.uuid("운용사를 고르세요"),

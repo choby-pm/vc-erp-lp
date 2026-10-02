@@ -14,7 +14,9 @@ import {
   type ProposalStatus,
   type Strategy,
 } from "@/lib/labels";
-import type { ProposalCreateInput, ProposalListQuery, ProposalUpdateInput } from "@/lib/schemas/proposals";
+import type { GpActor } from "@/lib/gp/client";
+import { responseDueSet, sendGpResponse, type GpDecision } from "@/lib/gp/responses";
+import type { LinkedProposalUpdateInput, ProposalCreateInput, ProposalListQuery, ProposalUpdateInput } from "@/lib/schemas/proposals";
 
 // 출자 제안 접수 · 심사 단계 (R2-3, BR-PROP-01~05, BR-PRG-04). 모든 함수는 기관 ID를 첫 인자로 받는다 (BR-ORG-02)
 // · 선정(selected)은 선정 결재 승인으로만 된다 (R2-4)
@@ -53,6 +55,13 @@ export type ProposalDetail = ProposalListItem & {
   history: StageHistory[];
   evaluable_stages: EvaluationStage[];
   pending_approval: boolean;
+  has_selection_terms: boolean;
+  // GP에 보낸 응답 (연동 제안만, R3-5)
+  gp_response_status: GpDecision | null;
+  gp_response_sent_at: Date | null;
+  gp_response_attempted_at: Date | null;
+  gp_response_error_code: string | null;
+  gp_response_error: string | null;
 };
 
 const isFinal = (s: ProposalStatus) => (FINAL_PROPOSAL_STATUSES as readonly string[]).includes(s);
@@ -91,9 +100,10 @@ export async function listProposals(orgId: string, q: ProposalListQuery = {}) {
 
 export async function getProposal(orgId: string, proposalId: string): Promise<ProposalDetail> {
   assertUuid(proposalId, "출자 제안을");
-  const [p] = await sql<(ProposalListItem & Omit<ProposalDetail, keyof ProposalListItem | "history" | "evaluable_stages" | "pending_approval" | "track_max_commitment_ratio"> & { track_max_commitment_ratio: string | null })[]>`
+  const [p] = await sql<(ProposalListItem & Omit<ProposalDetail, keyof ProposalListItem | "history" | "evaluable_stages" | "pending_approval" | "has_selection_terms" | "track_max_commitment_ratio"> & { track_max_commitment_ratio: string | null })[]>`
     select l.*, p.memo, p.program_track_id, pg.status as program_status, t.min_fund_size_amount as track_min_fund_size_amount,
-           t.max_commitment_ratio as track_max_commitment_ratio, f.target_amount
+           t.max_commitment_ratio as track_max_commitment_ratio, f.target_amount,
+           p.gp_response_status, p.gp_response_sent_at, p.gp_response_attempted_at, p.gp_response_error_code, p.gp_response_error
     from (${listQuery(orgId)} and p.id = ${proposalId}) l
     join proposals p on p.id = l.id
     join funds f on f.id = p.fund_id
@@ -108,12 +118,14 @@ export async function getProposal(orgId: string, proposalId: string): Promise<Pr
     order by h.changed_at, h.id
   `;
   const [pending] = await sql`select 1 from approvals where target_type = 'selection' and target_id = ${proposalId} and status = 'pending'`;
+  const [terms] = await sql`select 1 from selection_terms where proposal_id = ${proposalId}`;
   return {
     ...p,
     track_max_commitment_ratio: p.track_max_commitment_ratio === null ? null : Number(p.track_max_commitment_ratio),
     history,
     evaluable_stages: evaluableStages(p.status, history),
     pending_approval: Boolean(pending),
+    has_selection_terms: Boolean(terms),
   };
 }
 
@@ -215,8 +227,38 @@ export async function updateProposal(orgId: string, proposalId: string, input: P
   return getProposal(orgId, proposalId);
 }
 
+// 연동 제안 수정: 내부 메모와 공고 부문만 (금액·접수일은 GP 값, BR-COM-05)
+// 공고 부문을 붙이면 공고형이 된다. 접수 기간은 검사하지 않는다 — GP 제안은 GP가 보낸 날 들어오므로 ⚠️ (BR-PROP-03)
+// · 부문은 공고 중·심사 중인 출자사업만. 선정 조건을 쓴 뒤에는 바꿀 수 없다 (예산 연도가 사업 예산으로 정해지므로)
+export async function updateLinkedProposal(orgId: string, proposalId: string, input: LinkedProposalUpdateInput) {
+  const p = await loadOpen(orgId, proposalId);
+  if (p.data_source !== "gp_api") throw new AppError(409, "INVALID_STATE", "수기 제안은 요청액·접수일·메모로 수정합니다");
+  const trackId = input.program_track_id ?? null;
+  if (trackId !== p.program_track_id) {
+    if (p.has_selection_terms) {
+      throw new AppError(409, "SELECTION_TERMS_EXIST", "선정 조건을 쓴 뒤에는 공고 부문을 바꿀 수 없습니다. 선정 조건의 예산 연도가 사업 예산으로 정해지기 때문입니다", "BR-PROP-03");
+    }
+    if (trackId) {
+      assertUuid(trackId, "모집 부문을");
+      const [t] = await sql<{ status: string }[]>`
+        select pg.status from program_tracks t join programs pg on pg.id = t.program_id where t.id = ${trackId} and t.org_id = ${orgId}
+      `;
+      if (!t) throw new AppError(404, "NOT_FOUND", "모집 부문을 찾을 수 없습니다", undefined, { fields: { program_track_id: "모집 부문을 찾을 수 없습니다" } });
+      if (t.status !== "open" && t.status !== "reviewing") {
+        throw new AppError(422, "PROGRAM_NOT_OPEN", "공고 중이거나 심사 중인 출자사업의 부문에만 붙일 수 있습니다", "BR-PROP-03", { fields: { program_track_id: "공고 중·심사 중인 사업의 부문을 고르세요" } });
+      }
+    }
+  }
+  await sql`
+    update proposals set memo = ${input.memo}, program_track_id = ${trackId}, proposal_channel = ${trackId ? "program" : "direct"}
+    where id = ${proposalId} and org_id = ${orgId}
+  `;
+  return getProposal(orgId, proposalId);
+}
+
 // BR-PROP-04: 심사 단계는 앞으로만 간다. 건너뛸 수 있다. 선정은 결재로만
-export async function moveStage(orgId: string, userId: string, proposalId: string, toStatus: string, note: string | null) {
+// 연동 제안이 접수에서 처음 다음 단계로 가면 GP에 '검토 중'을 보낸다 (저장 뒤, BR-PROP-06)
+export async function moveStage(orgId: string, userId: string, proposalId: string, toStatus: string, note: string | null, actor?: GpActor) {
   const p = await loadOpen(orgId, proposalId);
   const from = REVIEW_STAGES.indexOf(p.status as (typeof REVIEW_STAGES)[number]);
   const to = REVIEW_STAGES.indexOf(toStatus as (typeof REVIEW_STAGES)[number]);
@@ -224,13 +266,13 @@ export async function moveStage(orgId: string, userId: string, proposalId: strin
     throw new AppError(409, "INVALID_STAGE_TRANSITION", `${PROPOSAL_STATUS_LABEL[p.status]}에서 ${withJosa(PROPOSAL_STATUS_LABEL[toStatus as ProposalStatus], "으로")} 옮길 수 없습니다. 심사 단계는 앞으로만 갑니다`, "BR-PROP-04");
   }
   await changeStatus(orgId, userId, proposalId, p.status, toStatus as ProposalStatus, note, null);
-  return getProposal(orgId, proposalId);
+  return { ...(await getProposal(orgId, proposalId)), gp_sync: await sendGpResponse(orgId, proposalId, actor) };
 }
 
 async function changeStatus(orgId: string, userId: string, proposalId: string, from: ProposalStatus, to: ProposalStatus, note: string | null, decidedDate: string | null) {
   await sql.begin(async (tx) => {
     const [row] = await tx`
-      update proposals set status = ${to}, decided_date = ${decidedDate}
+      update proposals set status = ${to}, decided_date = ${decidedDate}, ${responseDueSet(to)}
       where id = ${proposalId} and org_id = ${orgId} and status = ${from}
       returning id
     `;
@@ -251,10 +293,10 @@ function decidedDateOf(p: ProposalDetail, input: string | null) {
 }
 
 // 탈락 (어느 단계에서든). 연동 제안이면 GP에 거절을 전달한다 (R3, BR-PROP-06)
-export async function rejectProposal(orgId: string, userId: string, proposalId: string, input: { decided_date: string | null; note: string | null }) {
+export async function rejectProposal(orgId: string, userId: string, proposalId: string, input: { decided_date: string | null; note: string | null }, actor?: GpActor) {
   const p = await loadOpen(orgId, proposalId);
   await changeStatus(orgId, userId, proposalId, p.status, "rejected", input.note, decidedDateOf(p, input.decided_date));
-  return getProposal(orgId, proposalId);
+  return { ...(await getProposal(orgId, proposalId)), gp_sync: await sendGpResponse(orgId, proposalId, actor) };
 }
 
 // 철회 (GP가 제안을 거둬들임). 수기 제안만 — 연동 제안은 GP에 해당 상태가 없다 (BR-PROP-05)
@@ -281,6 +323,16 @@ export async function listOpenTracks(orgId: string) {
     select t.id, t.name, pg.name as program_name, pg.apply_start_date, pg.apply_end_date
     from program_tracks t join programs pg on pg.id = t.program_id
     where t.org_id = ${orgId} and pg.status = 'open'
+    order by pg.apply_start_date desc, t.created_at
+  `;
+}
+
+// 연동 제안에 붙일 수 있는 공고 부문: 공고 중·심사 중인 출자사업 (R3-5, BR-PROP-03)
+export async function listAttachableTracks(orgId: string) {
+  return sql<{ id: string; name: string; program_name: string }[]>`
+    select t.id, t.name, pg.name as program_name
+    from program_tracks t join programs pg on pg.id = t.program_id
+    where t.org_id = ${orgId} and pg.status in ('open', 'reviewing')
     order by pg.apply_start_date desc, t.created_at
   `;
 }

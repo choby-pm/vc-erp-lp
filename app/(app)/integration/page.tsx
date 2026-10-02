@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { PullButton, RetryButton } from "@/components/integration-actions";
+import { PullButton, RetryButton, SendPendingButton } from "@/components/integration-actions";
 import NoPermission from "@/components/no-permission";
 import { isAdmin } from "@/lib/auth/permissions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
-import { GP_EVENT_TYPE_LABEL, INBOUND_STATUS_LABEL, INBOUND_STATUS_STYLE, type InboundEventStatus } from "@/lib/labels";
+import { GP_EVENT_TYPE_LABEL, INBOUND_STATUS_LABEL, INBOUND_STATUS_STYLE, PROPOSAL_STATUS_LABEL, type InboundEventStatus } from "@/lib/labels";
+import { listUnsentResponses } from "@/lib/gp/responses";
 import { integrationOverview, listInboundEvents } from "@/lib/services/integration";
 
 export const metadata = { title: "GP 연동 · VC ERP LP" };
@@ -19,7 +20,7 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
 
   const { status: raw } = await props.searchParams;
   const status = STATUSES.includes(raw as InboundEventStatus) ? (raw as InboundEventStatus) : null;
-  const [overview, events] = await Promise.all([integrationOverview(me.org_id), listInboundEvents(me.org_id, status)]);
+  const [overview, events, unsent] = await Promise.all([integrationOverview(me.org_id), listInboundEvents(me.org_id, status), listUnsentResponses(me.org_id)]);
   const { links, counts, job } = overview;
   const last = job?.last_result as { pulled?: { connection: string; stored: number; error?: string }[]; processed?: { processed: number; ignored: number; failed: number } } | null;
   const lastSummary = [
@@ -101,6 +102,37 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
           (연결할 때 GP 데이터를 통째로 읽어 맞추므로).
         </p>
       </section>
+
+      {/* GP에 보내지 못한 제안 응답 (BR-SYNC-11, BR-PROP-06) */}
+      {unsent.length > 0 && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-amber-900">GP에 보내지 못한 제안 응답 {unsent.length}건</h2>
+              <p className="mt-1 text-xs text-amber-800">
+                GP에 닿지 못한 것은 주기 작업이 다시 보냅니다. GP가 거부한 것은 자동으로 다시 보내지 않으니 GP 담당자와 확인한 뒤 제안 화면에서 다시 보내세요.
+              </p>
+            </div>
+            <SendPendingButton />
+          </div>
+          <ul className="mt-3 divide-y divide-amber-200 text-sm">
+            {unsent.map((u) => (
+              <li key={u.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
+                <span>
+                  <Link href={`/proposals/${u.id}`} className="font-medium text-amber-950 hover:underline">
+                    {u.fund_name}
+                  </Link>
+                  <span className="ml-2 text-amber-800">{PROPOSAL_STATUS_LABEL[u.status]}</span>
+                  {u.gp_response_error_code === "GP_REJECTED" && <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">GP 거부</span>}
+                </span>
+                <span className="text-xs text-amber-800">
+                  {u.gp_response_attempted_at ? `${formatDateTime(u.gp_response_attempted_at)} · ${u.gp_response_error ?? ""}` : "아직 시도 전"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <nav className="flex flex-wrap gap-2">
         {[null, ...STATUSES].map((s) => (

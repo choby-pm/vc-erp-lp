@@ -2,11 +2,12 @@ import { sql } from "@/lib/db";
 import { AppError, assertUuid, notFound } from "@/lib/api/errors";
 import { FUND_STATUSES, FUND_STATUS_LABEL, type DataSource, type FundStatus, type FundType, type Strategy } from "@/lib/labels";
 import { withJosa } from "@/lib/format";
-import type { FundCreateInput, FundInput, FundListQuery, FundStatusInput } from "@/lib/schemas/funds";
+import type { FundCreateInput, FundInput, FundListQuery, FundStatusInput, LinkedFundInput } from "@/lib/schemas/funds";
 
 // 조합 (R1-3, L18). 기관마다 따로 관리한다. 모든 함수는 기관 ID를 첫 인자로 받는다 (BR-ORG-02)
 // · 수기 조합: 담당자가 정보·상태를 입력한다
 // · 연동 조합(gp_api): GP 값은 동기화만 바꾼다. 사용자가 바꾸려 하면 GP_MANAGED_FIELD (BR-COM-05, R3)
+//   단 분야(strategy)는 GP에 없는 LP 쪽 분류라 담당자가 고친다. 동기화는 분야를 건드리지 않는다 (R3-5)
 
 export type FundListItem = {
   id: string;
@@ -125,6 +126,14 @@ export async function updateFund(orgId: string, fundId: string, input: FundInput
       primary_purpose = ${input.primary_purpose}, primary_purpose_min_ratio = ${input.primary_purpose_min_ratio}
     where id = ${fundId} and org_id = ${orgId}
   `;
+  return getFund(orgId, fundId);
+}
+
+// 연동 조합의 분야 수정 (R3-5). 예산 분야 배분(BR-BUD-05)에 쓰인다
+export async function updateLinkedFund(orgId: string, fundId: string, input: LinkedFundInput) {
+  const fund = await getFund(orgId, fundId);
+  if (fund.data_source !== "gp_api") throw new AppError(409, "INVALID_STATE", "수기 조합은 조합 수정 화면에서 고칩니다");
+  await sql`update funds set strategy = ${input.strategy} where id = ${fundId} and org_id = ${orgId}`;
   return getFund(orgId, fundId);
 }
 

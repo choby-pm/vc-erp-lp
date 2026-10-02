@@ -102,7 +102,7 @@ try {
   });
 
   // ⑤ 첫 맞추기 (다시 실행해도 같은 결과)
-  const synced = await initialSync(org.id, gpId);
+  const { funds: synced, proposals } = await initialSync(org.id, gpId);
   for (const s of synced) {
     const ledger = s.result.ledger
       ? s.result.ledger.skipped
@@ -112,6 +112,9 @@ try {
     console.log(`• 첫 맞추기: 조합 '${s.fund}'${ledger}`);
   }
   if (synced.length === 0) console.log('• 첫 맞추기: GP에서 조합원인 조합이 없습니다');
+  const INTAKE = { created: '새로 접수', updated: '요청액 갱신', unchanged: '이미 접수됨', skipped: '건너뜀' };
+  for (const p of proposals) console.log(`• 출자 제안: '${p.fund_name}' — ${INTAKE[p.result]}${p.reason ? ` (${p.reason})` : ''}`);
+  if (proposals.length === 0) console.log('• 출자 제안: GP에서 받은 제안이 없습니다');
 
   console.log(`\n✔ 연결 확인됨: '${org.name}' → GP 출자자 '${gpLp.name}'`);
   console.log(`  GP 쪽 웹훅 주소(LP_SYSTEM_WEBHOOK_URL): <LP 주소>/api/webhooks/gp/${connection.id}`);

@@ -42,7 +42,7 @@ LP ERP에 더하는 것:
 | 기관 | 주소에 기관 ID를 넣지 않는다. **세션의 기관**이 곧 범위다 (BR-ORG-01). `/api/v1/orgs/{org_id}/…` 같은 주소는 만들지 않는다 |
 | 다른 기관 ID | 어떤 API든 다른 기관 데이터 ID면 `404 NOT_FOUND` (BR-ORG-03) |
 | GP 관리 필드 | 연동 행의 GP 값을 바꾸는 요청은 `409 GP_MANAGED_FIELD` (BR-COM-05) |
-| GP 호출 실패 | GP로 보내는 게 실패해도 LP ERP 저장은 성공으로 답하고, 응답에 `gp_sync: { status: "pending" }` 을 넣는다 (BR-SYNC-10) |
+| GP 호출 실패 | GP로 보내는 게 실패해도 LP ERP 저장은 성공으로 답하고, 응답에 `gp_sync: { status: "pending" }` 을 넣는다 (BR-SYNC-10). GP가 업무 규칙으로 거부하면 `{ status: "rejected", message }`, 보낼 것이 없으면 `{ status: "not_needed" }` (L24) |
 
 > **기관 ID를 주소에 넣지 않는 이유**: 주소에 있으면 사용자가 숫자만 바꿔 다른 기관을 시도할 수 있고,
 > 서버는 "주소의 기관 = 세션의 기관" 검사를 **모든 API에서** 빠짐없이 해야 한다. 아예 받지 않으면 빠뜨릴 검사도 없다.
@@ -80,7 +80,7 @@ LP ERP에 더하는 것:
 | GET | `/funds?status=&strategy=&data_source=&gp_id=` | 조합 목록 | 모두 |
 | POST | `/funds` | 수기 조합 등록 (L18, 연동 GP는 불가) | 담 |
 | GET | `/funds/{fund_id}` | 조합 + 제안 + 출자 건 요약 + 동기화 시각 | 모두 |
-| PATCH | `/funds/{fund_id}` | 수기 조합 정보 수정 (연동은 GP 값 불가) | 담 |
+| PATCH | `/funds/{fund_id}` | 수기 조합 정보 수정. 연동 조합은 `{ strategy }` 만 (나머지는 GP 값, L24) | 담 |
 | POST 🔄 | `/funds/{fund_id}/status` | 수기 조합 상태 변경 `{ "status": "formed", "formation_date": "…", "fund_size_amount": … }` (BR-FUND-02) | 담 |
 | POST 🔄 | `/funds/{fund_id}/resync` | GP와 다시 맞추기 (BR-SYNC-09) | 담 |
 
@@ -100,10 +100,10 @@ LP ERP에 더하는 것:
 |---|---|---|---|
 | GET | `/proposals?status=&program_id=&channel=&data_source=` | 제안 목록 (칸반용 단계별) | |
 | POST | `/proposals` | 수기 제안 등록 — 운용사(기존 ID 또는 새로 입력) + 조합 계획 + 요청액 | BR-PROP-01~02, BR-PRG-04 |
-| GET · PATCH | `/proposals/{proposal_id}` | 상세(평가·선정 조건·결재·단계 이력) · 메모·부문 수정 | |
-| POST 🔄 | `/proposals/{proposal_id}/stage` | 단계 이동 `{ "to_status": "presentation", "note": "…" }` | BR-PROP-04, 06 |
+| GET · PATCH | `/proposals/{proposal_id}` | 상세(평가·선정 조건·결재·단계 이력·GP 응답 상태) · 수정 — 수기: 요청액·접수일·메모, 연동: `{ program_track_id, memo }` (L24) | |
+| POST 🔄 | `/proposals/{proposal_id}/stage` | 단계 이동 `{ "to_status": "presentation", "note": "…" }`. 응답에 `gp_sync` (연동 제안) | BR-PROP-04, 06 |
 | POST 🔄 | `/proposals/{proposal_id}/reject` · `/withdraw` | 탈락 · 철회 | BR-PROP-04, 05 |
-| POST 🔄 | `/proposals/{proposal_id}/gp-response/resend` | GP에 응답 다시 보내기 | BR-SYNC-11 |
+| POST 🔄 | `/proposals/{proposal_id}/gp-response/resend` | GP에 응답 다시 보내기 (GP가 거부했던 것도). 응답 `{ status: sent | pending | rejected }` | BR-SYNC-11 |
 | GET · POST · PATCH | `/evaluation-criteria[/{criterion_id}]` | 평가 항목 (관리자) | BR-EVAL-01 |
 | POST 🔄 | `/evaluation-criteria/{criterion_id}/retire` | 항목 은퇴 | BR-EVAL-01 |
 | GET | `/proposals/{proposal_id}/evaluations` | 평가표 전체 + 단계별 평균 | BR-EVAL-05 |
@@ -195,7 +195,7 @@ LP ERP에 더하는 것:
 | GET | `/integration/events?status=failed` | 우리 기관 관련 받은 이벤트 | BR-SYNC-07 |
 | POST 🔄 | `/integration/events/{event_id}/retry` | 실패 이벤트 다시 처리 | BR-SYNC-07 |
 | POST 🔄 | `/integration/pull` | 놓친 이벤트 지금 가져오기 + 처리 | BR-SYNC-08 |
-| POST 🔄 | `/integration/send-pending` | 못 보낸 응답·확인·투표 지금 보내기 | BR-SYNC-11 |
+| POST 🔄 | `/integration/send-pending` | 못 보낸 응답·확인·투표 지금 보내기 (R3-5는 제안 응답만. GP 거부는 제외). 응답 `{ sent, pending, rejected }` | BR-SYNC-11 |
 
 > 연동 **설정**(GP 주소·키 변수 이름·기관 연결)은 기관이 아니라 서비스 운영자가 정하므로 API가 없다. MVP에서는 설정 스크립트로 넣는다 ⚠️.
 > `npm run gp:link -- --org a --gp-lp-id <GP 출자자 ID>` — 연결(없으면 생성, 환경 변수 `GP_DEMO_BASE_URL`·`GP_DEMO_API_KEY`·`GP_DEMO_WEBHOOK_SECRET`) → GP `GET /lps/{id}` 로 확인 → 기관의 운용사 목록에 연동 GP(기본 이름 'VC ERP 데모 운용사') → 기관 연결. 다시 실행해도 같은 결과 (R3-2)

@@ -2,6 +2,8 @@ import type postgres from "postgres";
 import { sql } from "@/lib/db";
 import { AppError, assertUuid, notFound } from "@/lib/api/errors";
 import type { ApprovalListQuery } from "@/lib/schemas/approvals";
+import type { GpActor } from "@/lib/gp/client";
+import { sendGpResponse } from "@/lib/gp/responses";
 import { applySelectionApproval } from "./selection";
 
 // 결재 (R2-4, L4, BR-APR-01~08). 대상: 선정(selection) · 납입(payment, R4) · 투표(vote, R5)
@@ -76,8 +78,9 @@ async function lockPending(tx: postgres.TransactionSql, orgId: string, approverI
   return a;
 }
 
-export async function approve(orgId: string, approverId: string, approvalId: string, comment: string | null) {
-  const result = await sql.begin(async (tx) => {
+// 선정이면 트랜잭션이 끝난 뒤 연동 제안의 확약을 GP에 보낸다. 못 보내도 승인은 그대로 (BR-PROP-06, 05 API 설계 4-1)
+export async function approve(orgId: string, approverId: string, approvalId: string, comment: string | null, actor?: GpActor) {
+  const { target, effect } = await sql.begin(async (tx) => {
     const a = await lockPending(tx, orgId, approverId, approvalId);
     let effect: Record<string, unknown> = {};
     if (a.target_type === "selection") effect = await applySelectionApproval(tx, orgId, approverId, a.target_id);
@@ -86,9 +89,10 @@ export async function approve(orgId: string, approverId: string, approvalId: str
       update approvals set status = 'approved', approver_id = ${approverId}, decided_at = now(), decision_comment = ${comment}
       where id = ${approvalId}
     `;
-    return effect;
+    return { target: a, effect };
   });
-  return { approval: await getApproval(orgId, approvalId), ...result };
+  const gp_sync = target.target_type === "selection" ? await sendGpResponse(orgId, target.target_id, actor) : undefined;
+  return { approval: await getApproval(orgId, approvalId), ...effect, ...(gp_sync ? { gp_sync } : {}) };
 }
 
 // 반려: 사유 필수 (BR-APR-06). 대상은 그대로 — 고쳐서 다시 기안한다 (BR-SEL-04)

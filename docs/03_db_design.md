@@ -262,8 +262,13 @@ LP ERP에 더하는 것:
 | `decided_date` | date | 선정·탈락·철회한 날 |
 | ❗ `data_source` | text | |
 | `gp_proposal_id` | uuid | 연동 GP의 출자 제안 ID. `(org_id, gp_proposal_id)` ✨ |
-| `gp_response_sent_at` | timestamptz | 선정·탈락 결과를 GP에 전달한 시각 (L5) |
+| `gp_response_sent_at` | timestamptz | 지금 상태의 응답(`gp_response_status`)을 GP에 전달한 시각 (L5). **비어 있으면 보낼 것** (BR-SYNC-11) |
+| `gp_response_status` | text | GP에 마지막으로 전달한 GP 제안 상태 `reviewing` / `committed` / `declined` (R3-5, 마이그레이션 004) |
+| `gp_response_attempted_at` | timestamptz | 마지막으로 보내 본 시각 (성공·실패 모두) |
+| `gp_response_error_code` · `gp_response_error` | text | 마지막 시도가 실패한 이유. `GP_REJECTED` 면 자동 재시도하지 않는다 (L24) |
 | `memo` | text | 내부 메모. GP에 보내지 않는다 |
+
+> **보낼 것 판단** (R3-5): 보낼 GP 상태는 LP 상태에서 정해진다 (접수 → 없음, 심사 중 → `reviewing`, 선정 → `committed`, 탈락 → `declined`). 상태를 바꾸는 UPDATE가 보낼 GP 상태가 달라질 때 `gp_response_sent_at` 을 비운다. 따로 "보낼 목록" 표를 두지 않는다. 수기 제안은 이 칸들이 늘 비어 있다 (check 제약).
 
 #### `proposal_stage_history` — 단계 이력
 `proposal_id`, `from_status`, `to_status`, `changed_at`, `changed_by`, `note`. 추가만.

@@ -10,6 +10,6 @@ export const POST = withOrgUser<RouteContext<"/api/v1/approvals/[approval_id]/ap
   const { approval_id } = await ctx.params;
   return idempotent(request, user, async (body) => {
     const { decision_comment } = validateBody(body, approvalDecisionSchema);
-    return ok(await approve(user.org_id, user.id, approval_id, decision_comment));
+    return ok(await approve(user.org_id, user.id, approval_id, decision_comment, { type: "user", user }));
   });
 });

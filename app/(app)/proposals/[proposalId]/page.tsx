@@ -1,5 +1,7 @@
 import Link from "next/link";
 import EvaluationPanel from "@/components/evaluation-panel";
+import { ResendGpResponseButton } from "@/components/integration-actions";
+import LinkedProposalEdit from "@/components/linked-proposal-edit";
 import ProposalActions from "@/components/proposal-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
@@ -11,23 +13,27 @@ import { sql } from "@/lib/db";
 import { approvalsForTarget } from "@/lib/services/approvals";
 import { listBudgets } from "@/lib/services/budgets";
 import { listCriteria, listEvaluations, weightSum } from "@/lib/services/evaluations";
-import { getProposal } from "@/lib/services/proposals";
+import { gpDecisionOf } from "@/lib/gp/responses";
+import { getProposal, listAttachableTracks } from "@/lib/services/proposals";
 import { getSelectionTerms, selectionCheck } from "@/lib/services/selection";
 
 export const metadata = { title: "출자 제안 · VC ERP LP" };
 
-// 출자 제안 상세: 심사 단계 · 선정 조건 · 선정 결재 · 평가 · 이력 (R2-3, R2-4)
+const GP_DECISION_LABEL = { reviewing: "검토 중", committed: "확약", declined: "거절" } as const;
+
+// 출자 제안 상세: 심사 단계 · 선정 조건 · 선정 결재 · 평가 · 이력 (R2-3, R2-4) · GP 응답 상태 (연동 제안, R3-5)
 export default async function ProposalDetailPage(props: PageProps<"/proposals/[proposalId]">) {
   const { proposalId } = await props.params;
   const me = (await getCurrentUser())!;
   const p = await loadOrNotFound(() => getProposal(me.org_id, proposalId));
-  const [criteria, evals, terms, check, approvals, budgets] = await Promise.all([
+  const [criteria, evals, terms, check, approvals, budgets, tracks] = await Promise.all([
     listCriteria(me.org_id),
     listEvaluations(me.org_id, proposalId),
     getSelectionTerms(me.org_id, proposalId),
     selectionCheck(me.org_id, proposalId),
     approvalsForTarget(me.org_id, "selection", proposalId),
     listBudgets(me.org_id),
+    p.data_source === "gp_api" ? listAttachableTracks(me.org_id) : Promise.resolve([]),
   ]);
   const [programBudget] = p.program_id ? await sql<{ budget_id: string }[]>`select budget_id from programs where id = ${p.program_id}` : [];
   const [commitment] = await sql<{ id: string; status: string }[]>`select id, status from commitments where proposal_id = ${proposalId} and org_id = ${me.org_id}`;
@@ -37,6 +43,9 @@ export default async function ProposalDetailPage(props: PageProps<"/proposals/[p
   const reached = new Set<string>(p.history.map((h) => h.to_status));
   // 거쳐 온 심사 단계 중 가장 뒤 단계. 그 앞에서 거치지 않은 단계는 건너뛴 것
   const lastReached = Math.max(...REVIEW_STAGES.map((s, i) => (reached.has(s) ? i : -1)));
+  // GP에 보낼 응답: 지금 LP 상태에 맞는 GP 상태. 보냈으면 gp_response_sent_at 이 있다 (BR-PROP-06, BR-SYNC-11)
+  const wanted = gpDecisionOf(p.status);
+  const gpSent = wanted !== null && p.gp_response_sent_at !== null && p.gp_response_status === wanted;
 
   return (
     <div className="space-y-6">
@@ -110,6 +119,41 @@ export default async function ProposalDetailPage(props: PageProps<"/proposals/[p
       {p.memo && <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">내부 메모: {p.memo}</p>}
       {canWrite && !isFinal && !p.pending_approval && p.data_source === "manual" && (
         <ProposalEdit proposalId={p.id} requestedAmount={p.requested_amount} receivedDate={p.received_date} memo={p.memo} />
+      )}
+      {canWrite && !isFinal && !p.pending_approval && p.data_source === "gp_api" && (
+        <LinkedProposalEdit proposalId={p.id} trackId={p.program_track_id} memo={p.memo} tracks={tracks} trackLocked={p.has_selection_terms} />
+      )}
+
+      {/* GP 응답 상태 (연동 제안만) */}
+      {p.data_source === "gp_api" && (
+        <div
+          className={`flex items-start justify-between gap-4 rounded-xl border px-4 py-3 text-sm ${
+            wanted === null || gpSent
+              ? "border-sky-200 bg-sky-50 text-sky-800"
+              : p.gp_response_error_code === "GP_REJECTED"
+                ? "border-rose-200 bg-rose-50 text-rose-800"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
+          <div>
+            <p className="font-semibold">GP에서 받은 제안입니다</p>
+            <p className="mt-0.5">
+              {wanted === null
+                ? "접수 단계라 GP에 보낼 응답이 아직 없습니다. 다음 심사 단계로 옮기면 GP에 '검토 중'을 보냅니다."
+                : gpSent
+                  ? `GP에 '${GP_DECISION_LABEL[wanted]}' 보냄 · ${formatDateTime(p.gp_response_sent_at!)}`
+                  : p.gp_response_error_code === "GP_REJECTED"
+                    ? `GP가 '${GP_DECISION_LABEL[wanted]}' 응답을 거부했습니다. LP 결정은 그대로 두었습니다 — GP 담당자와 확인하세요.`
+                    : `GP에 '${GP_DECISION_LABEL[wanted]}' 아직 보내지 못함${p.gp_response_attempted_at ? "" : " (아직 시도 전)"}. 주기 작업이 다시 보냅니다.`}
+            </p>
+            {!gpSent && p.gp_response_error && (
+              <p className="mt-1 text-xs">
+                마지막 시도 {p.gp_response_attempted_at ? formatDateTime(p.gp_response_attempted_at) : "-"} · {p.gp_response_error}
+              </p>
+            )}
+          </div>
+          {canWrite && wanted !== null && !gpSent && <ResendGpResponseButton proposalId={p.id} />}
+        </div>
       )}
 
       {p.pending_approval && (

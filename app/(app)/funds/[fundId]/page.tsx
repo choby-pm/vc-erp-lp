@@ -1,5 +1,6 @@
 import Link from "next/link";
 import FundStatusPanel from "@/components/fund-status-panel";
+import FundStrategyEdit from "@/components/fund-strategy-edit";
 import { ResyncButton } from "@/components/integration-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
@@ -14,12 +15,14 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
   const { fundId } = await props.params;
   const me = (await getCurrentUser())!;
   const fund = await loadOrNotFound(() => getFund(me.org_id, fundId));
-  const canWrite = (me.role === "admin" || me.role === "officer") && fund.data_source === "manual";
+  const isOfficer = me.role === "admin" || me.role === "officer";
+  const canWrite = isOfficer && fund.data_source === "manual";
   const step = FUND_STATUSES.indexOf(fund.status);
 
   const rows: [string, React.ReactNode][] = [
     ["조합 유형", FUND_TYPE_LABEL[fund.fund_type]],
-    ["분야", STRATEGY_LABEL[fund.strategy]],
+    // 연동 조합도 분야는 LP 쪽 분류라 여기서 고른다 (R3-5)
+    ["분야", isOfficer && fund.data_source === "gp_api" ? <FundStrategyEdit fundId={fund.id} strategy={fund.strategy} /> : STRATEGY_LABEL[fund.strategy]],
     ["목표 결성액", formatKRW(fund.target_amount)],
     ["결성액", formatKRW(fund.fund_size_amount)],
     ["결성일 (빈티지)", fund.formation_date ? `${formatDate(fund.formation_date)} (${fund.vintage_year})` : "-"],
@@ -71,9 +74,9 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
       {fund.data_source === "gp_api" && (
         <div className="flex items-start justify-between gap-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
           <p>
-            GP에서 받은 조합입니다. 정보와 상태는 GP와 동기화될 때만 바뀝니다. 마지막 동기화: {fund.last_synced_at ? formatDateTime(fund.last_synced_at) : "-"}
+            GP에서 받은 조합입니다. 정보와 상태는 GP와 동기화될 때만 바뀝니다 (분야는 LP 쪽 분류라 직접 고릅니다). 마지막 동기화: {fund.last_synced_at ? formatDateTime(fund.last_synced_at) : "-"}
           </p>
-          {(me.role === "admin" || me.role === "officer") && <ResyncButton fundId={fund.id} />}
+          {isOfficer && <ResyncButton fundId={fund.id} />}
         </div>
       )}
 

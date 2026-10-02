@@ -11,6 +11,7 @@ import { reconcile, type EntryType } from "@/lib/services/reconciliation";
 // · 기관 찾기: 출자자 이벤트는 그 출자자에 연결된 기관, 조합 전체 이벤트는 그 조합을 가진 모든 기관 (BR-SYNC-06)
 // · 연결별 발생 순서대로. 앞 이벤트가 실패하면 같은 출자자·조합의 뒤 이벤트는 기다린다 (BR-SYNC-04)
 // · 실패하면 1분 → 5분 → 30분 → 2시간 → 12시간 뒤 다시. 5번 실패하면 멈추고 관리자가 "다시 처리" (BR-SYNC-07)
+// · 출자 제안 통지는 GP 제안 목록을 읽어 연동 조합 + 제안을 만든다 (R3-5, BR-PROP-03)
 // · 아직 다루지 않는 이벤트(캐피탈콜·분배·총회·보고 통지 등)는 "무시" + 사유. 해당 릴리스에서 다시 맞추기로 채운다 (L22)
 
 const MAX_ATTEMPTS = 5;
@@ -37,7 +38,14 @@ type GpFundCore = {
   investment_period_years: number;
 };
 type GpFundDetail = { fund: GpFundCore & { total_commitment_amount: number }; terms: GpTerms };
-type GpProposal = { id: string; fund: GpFundCore & { terms: GpTerms } };
+type GpProposal = {
+  id: string;
+  status: "proposed" | "reviewing" | "committed" | "declined";
+  proposed_amount: number | null;
+  proposed_date: string;
+  last_sent_at: string;
+  fund: GpFundCore & { terms: GpTerms };
+};
 type GpLedgerEntry = { id: string; entry_type: EntryType; amount: number; entry_date: string; source: Record<string, unknown>; reversal_of_id: string | null };
 
 const rate = (v: number | null | undefined) => (v === null || v === undefined ? null : Number(v));
@@ -68,6 +76,15 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
   }
   if (!src) return { fund_id: existing?.id ?? null, source: null };
 
+  const fundId = await upsertFund(orgId, gpId, gpFundId, src);
+  const ledger = src.source === "member" ? await syncLedger(orgId, gpId, gpFundId, fundId, opts.actor) : undefined;
+  return { fund_id: fundId, source: src.source, ledger };
+}
+
+type FundSource = { core: GpFundCore; terms: GpTerms; fundSize: number | null };
+
+// GP 조합 정보를 우리 조합 행에 쓴다. 분야(strategy)는 처음 만들 때만 '기타'
+async function upsertFund(orgId: string, gpId: string, gpFundId: string, src: FundSource) {
   const { core, terms } = src;
   const values = {
     name: core.name,
@@ -89,8 +106,7 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
     on conflict (org_id, gp_fund_id) do update set ${sql({ ...values, last_synced_at: new Date() })}
     returning id
   `;
-  const ledger = src.source === "member" ? await syncLedger(orgId, gpId, gpFundId, fund.id, opts.actor) : undefined;
-  return { fund_id: fund.id, source: src.source, ledger };
+  return fund.id;
 }
 
 // 내 GP 원장을 사본으로 쌓는다 (추가만, 같은 GP 행은 한 번만). 사본은 출자 건에 붙으므로 출자 건이 없으면 건너뛴다.
@@ -124,14 +140,79 @@ export async function syncLedger(orgId: string, gpId: string, gpFundId: string, 
   });
 }
 
-// 연결 직후 첫 맞추기: 이 기관이 조합원인 GP 조합을 모두 읽는다 (gp:link 마지막 단계, R3 계획 R3-4)
-// 출자 제안은 R3-5 에서 더한다
+// ─── 출자 제안 자동 접수 (R3-5, BR-PROP-03) ──────────────────────────────────
+
+export type ProposalIntake = {
+  gp_proposal_id: string;
+  fund_name: string;
+  result: "created" | "updated" | "unchanged" | "skipped";
+  reason?: string;
+};
+
+const kstDate = (d: string | Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+
+// GP에서 받은 출자 제안을 우리 제안으로 접수한다. gpFundId 를 주면 그 조합의 제안만
+// · 새 제안: 연동 조합(결성 전이면 제안 목록의 조합 정보로) + 제안(개별 제안, gp_api, 요청액 = GP 제안 금액, 접수일 = GP 발송일)
+// · 이미 있으면 갱신만: 결정 전이면 요청액을 GP 값으로. 심사 단계는 LP 것이라 건드리지 않는다
+// · GP에서 이미 확약·거절로 끝난 제안은 새로 접수하지 않는다 (LP가 심사할 일이 없다) ⚠️
+export async function syncProposals(orgId: string, gpId: string, opts: { gpFundId?: string; actor?: GpActor } = {}): Promise<ProposalIntake[]> {
+  const gp = await gpClient(orgId, gpId, opts.actor);
+  const list = (await gp.get<GpProposal[]>("/proposals")).filter((p) => !opts.gpFundId || p.fund.id === opts.gpFundId);
+  const results: ProposalIntake[] = [];
+  for (const gpP of list) {
+    const base = { gp_proposal_id: gpP.id, fund_name: gpP.fund.name };
+    const [mine] = await sql<{ id: string; status: string; requested_amount: number }[]>`
+      select id, status, requested_amount from proposals where org_id = ${orgId} and gp_proposal_id = ${gpP.id}
+    `;
+    if (mine) {
+      const open = !["selected", "rejected", "withdrawn"].includes(mine.status);
+      if (open && gpP.proposed_amount && Number(mine.requested_amount) !== Number(gpP.proposed_amount)) {
+        await sql`update proposals set requested_amount = ${gpP.proposed_amount} where id = ${mine.id}`;
+        results.push({ ...base, result: "updated" });
+      } else results.push({ ...base, result: "unchanged" });
+      continue;
+    }
+    if (gpP.status === "committed" || gpP.status === "declined") {
+      results.push({ ...base, result: "skipped", reason: "GP에서 이미 결정된 제안" });
+      continue;
+    }
+    if (!gpP.proposed_amount) {
+      results.push({ ...base, result: "skipped", reason: "GP 제안 금액이 없음" });
+      continue;
+    }
+
+    // 조합: 이미 있으면 그대로(조합 정보는 조합 이벤트가 맞춘다), 없으면 제안의 조합 정보로 만든다
+    const [fund] = await sql<{ id: string }[]>`select id from funds where org_id = ${orgId} and gp_fund_id = ${gpP.fund.id}`;
+    const fundId = fund?.id ?? (await upsertFund(orgId, gpId, gpP.fund.id, { core: gpP.fund, terms: gpP.fund.terms, fundSize: null }));
+
+    const created = await sql.begin(async (tx) => {
+      const [row] = await tx<{ id: string }[]>`
+        insert into proposals (org_id, gp_id, fund_id, proposal_channel, requested_amount, received_date, data_source, gp_proposal_id)
+        values (${orgId}, ${gpId}, ${fundId}, 'direct', ${gpP.proposed_amount}, ${kstDate(gpP.last_sent_at)}, 'gp_api', ${gpP.id})
+        on conflict do nothing
+        returning id
+      `;
+      if (!row) return false;
+      await tx`
+        insert into proposal_stage_history (org_id, proposal_id, from_status, to_status, note)
+        values (${orgId}, ${row.id}, null, 'received', 'GP 출자 제안 자동 접수')
+      `;
+      return true;
+    });
+    results.push(created ? { ...base, result: "created" } : { ...base, result: "skipped", reason: "이 조합의 제안이 이미 있음 (BR-PROP-01)" });
+  }
+  return results;
+}
+
+// 연결 직후 첫 맞추기: 이 기관이 조합원인 GP 조합 + 받은 출자 제안을 모두 읽는다 (gp:link 마지막 단계, R3-4·R3-5)
+// 다시 실행해도 결과가 같다
 export async function initialSync(orgId: string, gpId: string, actor?: GpActor) {
   const gp = await gpClient(orgId, gpId, actor);
   const funds = await gp.get<{ fund_id: string; fund_name: string }[]>("/funds");
   const results: { fund: string; result: FundSyncResult }[] = [];
   for (const f of funds) results.push({ fund: f.fund_name, result: await syncFund(orgId, gpId, f.fund_id, { create: true, actor }) });
-  return results;
+  const proposals = await syncProposals(orgId, gpId, { actor });
+  return { funds: results, proposals };
 }
 
 // 조합 화면의 "GP와 다시 맞추기" (BR-SYNC-09)
@@ -195,7 +276,13 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
     }
     case "notice.sent": {
       const type = String(e.payload.data?.notice_type ?? "");
-      if (type === "proposal") return { done: false, reason: "출자 제안 접수는 R3-5에서 처리 (L22)" };
+      if (type === "proposal") {
+        if (!fundId) return { done: false, reason: "조합 정보가 없는 이벤트" };
+        const r = await syncProposals(orgId, gpId, { gpFundId: fundId });
+        if (r.length === 0) return { done: false, reason: "GP 제안 목록에 이 조합의 제안이 없음" };
+        const skipped = r.filter((x) => x.result === "skipped");
+        return skipped.length === r.length ? { done: false, reason: skipped.map((x) => x.reason).join(", ") } : { done: true };
+      }
       return { done: false, reason: `통지(${type || "알 수 없음"})는 R4~R6에서 처리 (L22)` };
     }
     default:

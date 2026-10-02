@@ -1,5 +1,6 @@
 import type postgres from "postgres";
 import { sql } from "@/lib/db";
+import { responseDueSet } from "@/lib/gp/responses";
 import { AppError, notFound } from "@/lib/api/errors";
 import { formatKRW } from "@/lib/format";
 import { FINAL_PROPOSAL_STATUSES, STRATEGY_LABEL, type Strategy } from "@/lib/labels";
@@ -249,7 +250,7 @@ export async function applySelectionApproval(tx: postgres.TransactionSql, orgId:
 
   // 2. 제안 → 선정, 결정일 = 승인일 · 3. 선정 조건 잠금 · 4. 출자 건 생성
   const decided = today();
-  await tx`update proposals set status = 'selected', decided_date = ${decided} where id = ${proposalId}`;
+  await tx`update proposals set status = 'selected', decided_date = ${decided}, ${responseDueSet("selected")} where id = ${proposalId}`;
   await tx`
     insert into proposal_stage_history (org_id, proposal_id, from_status, to_status, note, changed_by)
     values (${orgId}, ${proposalId}, ${p.status}, 'selected', '선정 결재 승인', ${approverId})
@@ -258,6 +259,6 @@ export async function applySelectionApproval(tx: postgres.TransactionSql, orgId:
   const [c] = await tx<{ id: string }[]>`
     insert into commitments (org_id, fund_id, proposal_id) values (${orgId}, ${p.fund_id}, ${proposalId}) returning id
   `;
-  // 5. 연동 제안이면 트랜잭션 후 GP에 확약을 전달한다 (R3, BR-PROP-06)
+  // 5. 연동 제안이면 트랜잭션 후 GP에 확약을 전달한다 (approve() 에서, BR-PROP-06)
   return { commitment_id: c.id, decided_date: decided };
 }

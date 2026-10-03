@@ -134,7 +134,8 @@ export function computeMetrics(asOf: string, contribution: number, distribution:
   const ratio = (x: number) => (contribution > 0 ? Number((x / contribution).toFixed(4)) : null);
   const dpi = ratio(distribution);
   const rvpi = ratio(navAmount);
-  const tvpi = dpi === null || rvpi === null ? null : Number((dpi + rvpi).toFixed(4));
+  // TVPI = DPI + RVPI 이지만, 반올림한 두 값을 더하면 넷째 자리가 어긋날 수 있어 금액으로 바로 나눈다 (R7-5 숫자 점검에서 발견)
+  const tvpi = ratio(distribution + navAmount);
   const flows = navAmount > 0 ? [...cashflows, { date: asOf, kind: "nav" as const, amount: navAmount }] : cashflows;
   const firstPay = cashflows.find((f) => f.kind === "contribution")?.date;
   let irr: number | null = null;

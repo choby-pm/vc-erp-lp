@@ -6,6 +6,8 @@ import CommitmentLedger from "@/components/commitment-ledger";
 import DistributionTable from "@/components/distribution-table";
 import { NewDistributionForm } from "@/components/distribution-actions";
 import { listDistributions } from "@/lib/services/distributions";
+import PerformanceCard from "@/components/performance-card";
+import { commitmentPerformance, todayKst } from "@/lib/services/performance";
 import { ResyncButton } from "@/components/integration-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
@@ -31,6 +33,8 @@ const ENTRY_LABEL = { commitment: "약정", contribution: "납입", distribution
 // + 장부 나란히 보기 · 약정 변경 · 대사 불일치 확인 · 대사 이력 (R3-6b)
 export default async function CommitmentDetailPage(props: PageProps<"/commitments/[commitmentId]">) {
   const { commitmentId } = await props.params;
+  const { as_of: rawAsOf } = await props.searchParams;
+  const asOf = typeof rawAsOf === "string" && /^d{4}-d{2}-d{2}$/.test(rawAsOf) ? rawAsOf : todayKst();
   const me = (await getCurrentUser())!;
   const c = await loadOrNotFound(() => getCommitment(me.org_id, commitmentId));
   const linked = c.data_source === "gp_api";
@@ -40,6 +44,7 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
     listCallsForCommitment(me.org_id, commitmentId),
   ]);
   const distributions = await listDistributions(me.org_id, { status: "all", commitment_id: commitmentId });
+  const perf = c.status === "active" || c.status === "closed" ? await commitmentPerformance(me.org_id, commitmentId, asOf) : null;
   const called = calls.filter((x) => !x.cancelled_at).reduce((s, x) => s + x.call_amount, 0);
   const unfunded = c.commitment_amount - called;
   const canWrite = me.role === "admin" || me.role === "officer";
@@ -140,6 +145,19 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
         <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
           {formatDate(c.cancelled_date)} 선정 취소 — {c.cancel_reason}
         </p>
+      )}
+
+      {perf && (
+        <PerformanceCard
+          p={perf}
+          asOfForm={
+            <form className="flex items-center gap-2 text-xs text-slate-500">
+              기준일
+              <input type="date" name="as_of" defaultValue={asOf} className="rounded-md border border-slate-300 px-2 py-1 text-xs" />
+              <button className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50">보기</button>
+            </form>
+          }
+        />
       )}
 
       {(c.status === "active" || calls.length > 0) && (

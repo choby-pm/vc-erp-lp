@@ -35,6 +35,7 @@ const SECTIONS: { title: string; items: Item[]; adminOnly?: boolean }[] = [
       { href: "/proposals", label: "출자 제안", icon: icon("M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11") },
       { href: "/commitments", label: "출자 건", icon: icon("M4 4h16v16H4zM8 9h8M8 13h8M8 17h5") },
       { href: "/capital-calls", label: "캐피탈콜", icon: icon("M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M6 10v4M18 10v4") },
+      { href: "/cash-plan", label: "자금 계획", icon: icon("M3 3v18h18M7 15l4-4 3 3 5-6") },
       { href: "/funds", label: "조합", icon: icon("M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6") },
     ],
   },

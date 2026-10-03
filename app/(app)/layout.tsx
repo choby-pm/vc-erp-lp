@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AppSidebar from "@/components/app-sidebar";
+import SectionTabs from "@/components/section-tabs";
 import { getCurrentUser } from "@/lib/auth/session";
 import { countPendingForMe } from "@/lib/services/approvals";
 import { SIDEBAR_FOLDED_COOKIE } from "@/lib/ui-prefs";
@@ -16,7 +17,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <div className="flex flex-1 flex-col bg-slate-50 md:flex-row">
       <AppSidebar orgName={user.org_name} userName={user.name} userRole={user.role} initialFolded={folded} pendingApprovals={pending} />
       <main className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">{children}</div>
+        <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">
+          <SectionTabs />
+          {children}
+        </div>
       </main>
     </div>
   );

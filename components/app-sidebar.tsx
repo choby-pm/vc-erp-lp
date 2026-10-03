@@ -6,15 +6,14 @@ import { useState } from "react";
 import LinkPending from "@/components/link-pending";
 import LogoutButton from "@/components/logout-button";
 import { ROLE_LABEL, type Role } from "@/lib/auth/roles";
+import { NAV, groupOf } from "@/lib/nav";
 import { SIDEBAR_FOLDED_COOKIE } from "@/lib/ui-prefs";
 
 // 전체 메뉴 사이드바 (🔗 GP components/app-sidebar.tsx 와 같은 동작)
 // · 넓은 화면: 왼쪽 고정. 접으면 아이콘만 (쿠키에 기억)
 // · 좁은 화면: ☰ 버튼으로 여닫는다
 // · 맨 위에 지금 일하는 기관 이름을 항상 보여준다 (여러 기관이 쓰는 서비스, L2)
-// · "기관 관리" 메뉴는 관리자에게만 보인다. 메뉴는 릴리스가 진행되며 늘어난다
-
-type Item = { href: string; label: string; icon: React.ReactNode; also?: string[] };
+// · 메뉴 표는 lib/nav.ts (묶음 = 한 줄, 묶음 안의 화면은 위쪽 탭). "관리" 는 관리자에게만 보인다
 
 const icon = (d: string) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0" aria-hidden>
@@ -23,42 +22,6 @@ const icon = (d: string) => (
 );
 
 const PANEL = "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 3v18";
-
-const SECTIONS: { title: string; items: Item[]; adminOnly?: boolean }[] = [
-  {
-    title: "출자 업무",
-    items: [
-      { href: "/", label: "대시보드", icon: icon("M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z") },
-      { href: "/approvals", label: "결재함", icon: icon("M9 12l2 2 4-4M12 3l7 4v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V7z") },
-      { href: "/budgets", label: "출자 예산", icon: icon("M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6") },
-      { href: "/programs", label: "출자사업", icon: icon("M3 11l18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6") },
-      { href: "/proposals", label: "출자 제안", icon: icon("M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11") },
-      { href: "/commitments", label: "출자 건", icon: icon("M4 4h16v16H4zM8 9h8M8 13h8M8 17h5") },
-      { href: "/capital-calls", label: "캐피탈콜", icon: icon("M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M6 10v4M18 10v4") },
-      { href: "/distributions", label: "분배", icon: icon("M12 2v20M5 9l7-7 7 7M5 15h14") },
-      { href: "/performance", label: "성과", icon: icon("M4 20V10M10 20V4M16 20v-7M22 20H2") },
-      { href: "/cash-plan", label: "자금 계획", icon: icon("M3 3v18h18M7 15l4-4 3 3 5-6") },
-      { href: "/reports", label: "GP 보고", icon: icon("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 17v-3M12 17v-6M15 17v-2") },
-      { href: "/meetings", label: "총회", icon: icon("M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75") },
-      { href: "/notices", label: "통지함", icon: icon("M4 4h16v12H5.2L4 17.2zM8 9h8M8 12h5") },
-      { href: "/funds", label: "조합", icon: icon("M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6") },
-    ],
-  },
-  {
-    title: "기준 정보",
-    items: [{ href: "/gps", label: "운용사", icon: icon("M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4") }],
-  },
-  {
-    title: "기관 관리",
-    adminOnly: true,
-    items: [
-      { href: "/users", label: "사용자", icon: icon("M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.87M16 4.13a3 3 0 0 1 0 5.74") },
-      { href: "/evaluation-criteria", label: "평가 항목", icon: icon("M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z") },
-      { href: "/integration", label: "GP 연동", icon: icon("M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7") },
-      { href: "/audit-logs", label: "감사 로그", icon: icon("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5") },
-    ],
-  },
-];
 
 export default function AppSidebar({
   orgName,
@@ -73,8 +36,9 @@ export default function AppSidebar({
   initialFolded: boolean;
   pendingApprovals?: number; // 내가 결재할 대기 건수 (결재권자·관리자)
 }) {
-  const sections = SECTIONS.filter((s) => !s.adminOnly || userRole === "admin");
+  const sections = NAV.filter((s) => !s.adminOnly || userRole === "admin");
   const pathname = usePathname();
+  const current = groupOf(pathname);
   const [open, setOpen] = useState(false);
   const [folded, setFolded] = useState(initialFolded);
 
@@ -94,10 +58,11 @@ export default function AppSidebar({
             <p className="px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{section.title}</p>
           )}
           <ul className={`space-y-0.5 ${compact ? "" : "mt-2"}`}>
-            {section.items.map((item) => {
-              const active = item.href === "/" ? pathname === "/" : [item.href, ...(item.also ?? [])].some((h) => pathname === h || pathname.startsWith(`${h}/`));
+            {section.groups.map((group) => {
+              const active = current?.key === group.key;
+              const item = { href: group.tabs[0].href, label: group.label };
               return (
-                <li key={item.href}>
+                <li key={group.key}>
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
@@ -107,7 +72,7 @@ export default function AppSidebar({
                       active ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >
-                    {item.icon}
+                    {icon(group.icon)}
                     <span className={compact ? "sr-only" : ""}>{item.label}</span>
                     {item.href === "/approvals" && pendingApprovals > 0 && (
                       <span aria-label={`결재 대기 ${pendingApprovals}건`} className={`rounded-full bg-amber-500 text-[11px] font-bold leading-none text-white ${compact ? "absolute ml-5 -mt-5 px-1.5 py-0.5" : "ml-auto px-2 py-1"}`}>

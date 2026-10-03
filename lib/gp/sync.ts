@@ -7,6 +7,7 @@ import { reconcile, type EntryType } from "@/lib/services/reconciliation";
 import { autoConfirmImported, ensureImportedCommitment } from "@/lib/services/commitments";
 import { upsertGpCalls, type GpCapitalCall } from "@/lib/services/capital-calls";
 import { importPastPayments, type ImportResult } from "@/lib/services/imported-payments";
+import { syncNotices } from "@/lib/services/notices";
 
 // 받은 GP 이벤트 처리 — 동기화 (R3-4, 03 DB 설계 5장, 04 비즈니스 규칙 10-1)
 // · 이벤트는 "무엇이 바뀌었다"는 신호일 뿐이다. 본문으로 데이터를 만들지 않고 GP API로 다시 읽어 반영한다 (BR-SYNC-05)
@@ -252,7 +253,8 @@ export async function initialSync(orgId: string, gpId: string, actor?: GpActor) 
   const funds = await gp.get<{ fund_id: string; fund_name: string }[]>("/funds");
   const results: { fund: string; result: FundSyncResult }[] = [];
   for (const f of funds) results.push({ fund: f.fund_name, result: await syncFund(orgId, gpId, f.fund_id, { create: true, actor }) });
-  return { funds: results, proposals };
+  const notices = await syncNotices(orgId, gpId, actor); // 조합을 만든 뒤라 통지를 조합에 이어 줄 수 있다
+  return { funds: results, proposals, notices };
 }
 
 // 조합 화면의 "GP와 다시 맞추기" (BR-SYNC-09)
@@ -315,7 +317,9 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
       return r.fund_id ? { done: true } : { done: false, reason: "GP에서 이 출자자의 조합으로 찾을 수 없음" };
     }
     case "notice.sent": {
+      // 어떤 통지든 먼저 통지함에 받는다 (R5-1). 그 뒤 종류별 처리
       const type = String(e.payload.data?.notice_type ?? "");
+      await syncNotices(orgId, gpId);
       if (type === "proposal") {
         if (!fundId) return { done: false, reason: "조합 정보가 없는 이벤트" };
         const r = await syncProposals(orgId, gpId, { gpFundId: fundId });
@@ -330,7 +334,8 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
         if (!r.fund_id) return { done: false, reason: "GP에서 이 출자자의 조합으로 찾을 수 없음" };
         return r.calls && "skipped" in r.calls ? { done: false, reason: "결성 확인 전인 출자 건 (확인 직후 다시 맞춤)" } : { done: true };
       }
-      return { done: false, reason: `통지(${type || "알 수 없음"})는 R5~R6에서 처리 (L22)` };
+      // 보고·총회·분배·일반 통지: 통지함까지는 받았다. 보고·총회 내용은 R5-2·R5-3, 분배는 R6 에서 더한다
+      return { done: true };
     }
     default:
       return { done: false, reason: `${e.event_type} 은(는) 아직 다루지 않는 이벤트 (L22)` };

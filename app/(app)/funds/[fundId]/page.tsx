@@ -7,6 +7,8 @@ import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/form
 import { DATA_SOURCE_LABEL, FUND_STATUSES, FUND_STATUS_LABEL, FUND_TYPE_LABEL, STRATEGY_LABEL } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
 import { getFund } from "@/lib/services/funds";
+import { listNotices } from "@/lib/services/notices";
+import { NOTICE_TYPE_LABEL } from "@/lib/labels";
 
 export const metadata = { title: "조합 · VC ERP LP" };
 
@@ -15,6 +17,7 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
   const { fundId } = await props.params;
   const me = (await getCurrentUser())!;
   const fund = await loadOrNotFound(() => getFund(me.org_id, fundId));
+  const notices = (await listNotices(me.org_id, { fund_id: fund.id })).slice(0, 5);
   const isOfficer = me.role === "admin" || me.role === "officer";
   const canWrite = isOfficer && fund.data_source === "manual";
   const step = FUND_STATUSES.indexOf(fund.status);
@@ -94,8 +97,30 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
 
       {canWrite && <FundStatusPanel fundId={fund.id} status={fund.status} hasFormation={fund.formation_date !== null} />}
 
-      <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center text-sm text-slate-500">
-        출자 제안·심사·약정·납입 기록은 R2부터 이 화면에 추가됩니다.
+      <section className="rounded-2xl border border-slate-200 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+          <h2 className="text-sm font-semibold text-slate-900">최근 통지</h2>
+          <Link href="/notices?box=all" className="text-xs text-emerald-700 hover:underline">
+            통지함
+          </Link>
+        </div>
+        {notices.length === 0 ? (
+          <p className="px-5 py-6 text-center text-sm text-slate-400">이 조합에서 받은 통지가 없습니다.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {notices.map((n) => (
+              <li key={n.id} className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-2.5 text-sm">
+                <span className="text-slate-800">
+                  <span className="mr-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{NOTICE_TYPE_LABEL[n.notice_type]}</span>
+                  {n.title}
+                </span>
+                <span className={`text-xs ${n.acknowledged_at ? "text-slate-400" : "font-semibold text-emerald-700"}`}>
+                  {formatDateTime(n.sent_at)} · {n.acknowledged_at ? "확인함" : "미확인"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

@@ -188,3 +188,13 @@ export const PAYMENT_STATUS_STYLE: Record<string, string> = {
   rejected: "bg-rose-100 text-rose-700",
   cancelled: "bg-slate-200 text-slate-500",
 };
+
+// 통지 종류 (R5-1, 🔗 GP NOTICE_TYPES)
+export const NOTICE_TYPE_LABEL: Record<string, string> = {
+  proposal: "출자 제안",
+  capital_call: "캐피탈콜",
+  report: "정기 보고",
+  meeting: "총회",
+  distribution: "분배",
+  general: "일반",
+};

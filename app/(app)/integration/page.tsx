@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
 import { GP_EVENT_TYPE_LABEL, INBOUND_STATUS_LABEL, INBOUND_STATUS_STYLE, PROPOSAL_STATUS_LABEL, type InboundEventStatus } from "@/lib/labels";
 import { listUnsentResponses } from "@/lib/gp/responses";
+import { listUnsentAcks } from "@/lib/services/notices";
 import { integrationOverview, listInboundEvents } from "@/lib/services/integration";
 
 export const metadata = { title: "GP 연동 · VC ERP LP" };
@@ -20,7 +21,12 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
 
   const { status: raw } = await props.searchParams;
   const status = STATUSES.includes(raw as InboundEventStatus) ? (raw as InboundEventStatus) : null;
-  const [overview, events, unsent] = await Promise.all([integrationOverview(me.org_id), listInboundEvents(me.org_id, status), listUnsentResponses(me.org_id)]);
+  const [overview, events, unsent, unsentAcks] = await Promise.all([
+    integrationOverview(me.org_id),
+    listInboundEvents(me.org_id, status),
+    listUnsentResponses(me.org_id),
+    listUnsentAcks(me.org_id),
+  ]);
   const { links, counts, job } = overview;
   const last = job?.last_result as { pulled?: { connection: string; stored: number; error?: string }[]; processed?: { processed: number; ignored: number; failed: number } } | null;
   const lastSummary = [
@@ -104,6 +110,16 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
       </section>
 
       {/* GP에 보내지 못한 제안 응답 (BR-SYNC-11, BR-PROP-06) */}
+      {unsentAcks.length > 0 && (
+        <section className="flex items-start justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <div>
+            <h2 className="text-base font-semibold text-amber-900">GP에 보내지 못한 통지 확인 {unsentAcks.length}건</h2>
+            <p className="mt-1 text-xs text-amber-800">{unsentAcks.slice(0, 5).map((a) => a.title).join(" · ")}{unsentAcks.length > 5 ? " …" : ""} — 주기 작업이 다시 보냅니다 (BR-SYNC-11).</p>
+          </div>
+          {unsent.length === 0 && <SendPendingButton />}
+        </section>
+      )}
+
       {unsent.length > 0 && (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <div className="flex items-start justify-between gap-4">

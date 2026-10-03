@@ -147,8 +147,10 @@ export function SendPendingButton() {
     const body = await res.json().catch(() => ({}));
     setPending(false);
     if (!res.ok) return setMessage(body.error?.message ?? "보내지 못했습니다");
-    const r = body.data as { sent: number; pending: number; rejected: number };
-    setMessage(`보냄 ${r.sent}건 · 아직 못 보냄 ${r.pending}건 · GP 거부 ${r.rejected}건`);
+    const r = body.data as { sent: number; pending: number; rejected: number; acks?: { sent: number; pending: number } };
+    setMessage(
+      `제안 응답: 보냄 ${r.sent} · 못 보냄 ${r.pending} · GP 거부 ${r.rejected}` + (r.acks ? ` / 통지 확인: 보냄 ${r.acks.sent} · 못 보냄 ${r.acks.pending}` : ""),
+    );
     router.refresh();
   }
 

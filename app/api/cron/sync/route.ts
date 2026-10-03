@@ -3,6 +3,7 @@ import { toErrorResponse } from "@/lib/api/handler";
 import { ok } from "@/lib/api/response";
 import { allConnectionIds } from "@/lib/gp/inbox";
 import { sendPendingResponses } from "@/lib/gp/responses";
+import { sendPendingAcks } from "@/lib/services/notices";
 import { pullAndProcessExclusive } from "@/lib/gp/sync";
 import { writeAudit } from "@/lib/services/audit";
 
@@ -14,7 +15,11 @@ export async function GET(request: Request) {
   let res: Response;
   try {
     const synced = await pullAndProcessExclusive(await allConnectionIds(), "cron", { type: "cron" });
-    const result = { ...synced, responses: await sendPendingResponses(null, { type: "cron" }) };
+    const result = {
+      ...synced,
+      responses: await sendPendingResponses(null, { type: "cron" }),
+      acks: await sendPendingAcks(null, { type: "cron" }), // 못 보낸 통지 확인 (R5-1)
+    };
     res = ok(result);
     await writeAudit({ actor_type: "cron", method: "GET", path: "/api/cron/sync", status: 200, detail: result, request });
   } catch (err) {

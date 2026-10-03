@@ -189,7 +189,7 @@ LP ERP에 더하는 것:
 |---|---|---|---|
 | GET | `/performance?as_of=&group_by=vintage\|strategy\|gp\|source` | 포트폴리오 합계와 묶음별 TVPI·DPI·RVPI·IRR (4-4) | BR-PERF-01~06 |
 | GET | `/commitments/{commitment_id}/performance?as_of=` | 출자 건 성과 + 현금흐름 목록 (IRR 근거) | BR-PERF-04 |
-| GET | `/dashboard` | 주의 목록 `{ alerts: [{ key, label, tone, items: [{ title, detail, href, date }] }] }` (R5-4). 예산 사용·포트폴리오 합계·30일 일정은 R7 | 04 14장 |
+| GET | `/dashboard` | `{ today, budget, portfolio, cash: { month, this_month, overdue_unpaid, months }, schedule: [{ date, kind, title, detail, href }], alerts: [{ key, label, tone, items }] }`. budget = 올해 예산(예산 화면과 같은 값, 없으면 null), portfolio = 성과 화면 '전체' 행, cash = 자금 계획 12개월, schedule = 오늘~30일 기한·예정일(납입 기한·총회·분배일·결성 기한·접수 마감·보고 기한) (R5-4, R7-1) | 04 14장 |
 | POST 🔄 | `/funds/{fund_id}/key-person-review` | 핵심 운용 인력 변경 확인 (주의 목록에서 빠짐) | L37 |
 
 ### 3-13. GP 연동 관리 (관리자)

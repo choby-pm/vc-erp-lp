@@ -15,6 +15,7 @@ export type Dashboard = {
   today: string;
   budget: BudgetDetail | null; // 올해 예산 (없으면 null)
   portfolio: MetricRow; // 성과 화면 '전체' 행과 같다
+  vintages: MetricRow[]; // 성과 화면 빈티지별 행 (차트)
   cash: { month: string; this_month: CashPlanMonth | null; overdue_unpaid: number; months: CashPlanMonth[] };
   schedule: ScheduleItem[]; // 오늘 ~ 30일 뒤, 날짜순
   alerts: AlertGroup[];
@@ -101,6 +102,7 @@ export async function getDashboard(orgId: string, user: Parameters<typeof getAle
     today,
     budget: thisYear ? await getBudget(orgId, thisYear.id) : null,
     portfolio: perf.total,
+    vintages: perf.groups,
     cash: { month, this_month: plan.months.find((m) => m.month === month) ?? null, overdue_unpaid: plan.overdue_unpaid, months: plan.months },
     schedule,
     alerts,

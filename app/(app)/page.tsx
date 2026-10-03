@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BudgetChart, CashChart, VintageChart } from "@/components/dashboard-charts";
 import { multiple, pct } from "@/components/performance-card";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ROLE_LABEL } from "@/lib/auth/roles";
@@ -39,7 +40,7 @@ function Card({ title, href, children }: { title: string; href: string; children
   );
 }
 
-// 대시보드 (R5-4 주의 목록 + R7-1 숫자 · 30일 일정). L45 배치: 숫자 카드 → 주의 목록 → 30일 일정 → 차트(R7-2)
+// 대시보드 (R5-4 주의 목록 + R7-1 숫자 · 30일 일정 + R7-2 차트). L45 배치: 숫자 카드 → 주의 목록 → 30일 일정 → 차트
 // 저장하지 않고 열 때마다 계산한다. 숫자는 예산 · 성과 · 자금 계획 화면과 같은 함수 (04 14장)
 export default async function Home() {
   const user = (await getCurrentUser())!;
@@ -185,6 +186,12 @@ export default async function Home() {
           </ul>
         )}
       </section>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <BudgetChart year={Number(d.today.slice(0, 4))} strategies={b?.strategies ?? null} />
+        <CashChart months={d.cash.months} />
+        <VintageChart groups={d.vintages} />
+      </div>
     </div>
   );
 }

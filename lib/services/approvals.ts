@@ -5,6 +5,7 @@ import type { ApprovalListQuery } from "@/lib/schemas/approvals";
 import type { GpActor } from "@/lib/gp/client";
 import { sendGpResponse } from "@/lib/gp/responses";
 import { applyPaymentDecision } from "./payments";
+import { submitVotes } from "./meetings";
 import { applySelectionApproval } from "./selection";
 
 // 결재 (R2-4, L4, BR-APR-01~08). 대상: 선정(selection) · 납입(payment, R4) · 투표(vote, R5)
@@ -34,6 +35,7 @@ const listSql = (orgId: string) => sql`
          case a.target_type
            when 'selection' then coalesce(f.name, '')
            when 'payment' then coalesce(pf.name || ' · ' || pc.call_no || '회 ' || to_char(pp.amount / 100000000.0, 'FM999,990.##') || '억 원', '')
+           when 'vote' then coalesce(vf.name || ' · ' || to_char(vm.meeting_date, 'YYYY-MM-DD') || ' 총회', '')
            else '' end as title
   from approvals a
   join users r on r.id = a.requested_by
@@ -44,6 +46,8 @@ const listSql = (orgId: string) => sql`
   left join capital_calls pc on pc.id = pp.capital_call_id
   left join commitments pm on pm.id = pc.commitment_id
   left join funds pf on pf.id = pm.fund_id
+  left join meetings vm on a.target_type = 'vote' and vm.id = a.target_id
+  left join funds vf on vf.id = vm.fund_id
   where a.org_id = ${orgId}
 `;
 
@@ -93,6 +97,7 @@ export async function approve(orgId: string, approverId: string, approvalId: str
     let effect: Record<string, unknown> = {};
     if (a.target_type === "selection") effect = await applySelectionApproval(tx, orgId, approverId, a.target_id);
     else if (a.target_type === "payment") effect = await applyPaymentDecision(tx, a.target_id, "approved"); // 송금 대기 (BR-PAY-01)
+    else if (a.target_type === "vote") effect = { meeting_id: a.target_id }; // 제출은 트랜잭션 뒤 (BR-VOTE-04)
     else throw new AppError(422, "NOT_IMPLEMENTED", "이 결재 대상은 아직 지원하지 않습니다");
     await tx`
       update approvals set status = 'approved', approver_id = ${approverId}, decided_at = now(), decision_comment = ${comment}
@@ -100,7 +105,13 @@ export async function approve(orgId: string, approverId: string, approvalId: str
     `;
     return { target: a, effect };
   });
-  const gp_sync = target.target_type === "selection" ? await sendGpResponse(orgId, target.target_id, actor) : undefined;
+  // 승인된 것을 GP에 전달 (저장 뒤, BR-SYNC-10): 선정 → 제안 확약, 투표 → 총회 투표 제출
+  const gp_sync =
+    target.target_type === "selection"
+      ? await sendGpResponse(orgId, target.target_id, actor)
+      : target.target_type === "vote"
+        ? await submitVotes(orgId, target.target_id, actor)
+        : undefined;
   return { approval: await getApproval(orgId, approvalId), ...effect, ...(gp_sync ? { gp_sync } : {}) };
 }
 

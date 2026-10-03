@@ -4,6 +4,7 @@ import { ok } from "@/lib/api/response";
 import { allConnectionIds } from "@/lib/gp/inbox";
 import { sendPendingResponses } from "@/lib/gp/responses";
 import { sendPendingAcks } from "@/lib/services/notices";
+import { sendPendingVotes } from "@/lib/services/meetings";
 import { pullAndProcessExclusive } from "@/lib/gp/sync";
 import { writeAudit } from "@/lib/services/audit";
 
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
       ...synced,
       responses: await sendPendingResponses(null, { type: "cron" }),
       acks: await sendPendingAcks(null, { type: "cron" }), // 못 보낸 통지 확인 (R5-1)
+      votes: await sendPendingVotes(null, { type: "cron" }), // 승인됐는데 못 보낸 투표 (R5-3)
     };
     res = ok(result);
     await writeAudit({ actor_type: "cron", method: "GET", path: "/api/cron/sync", status: 200, detail: result, request });

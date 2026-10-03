@@ -10,9 +10,11 @@ import { getFund } from "@/lib/services/funds";
 import { listNotices } from "@/lib/services/notices";
 import { listReports } from "@/lib/services/reports";
 import ReportTable from "@/components/report-table";
+import { NewMeetingForm } from "@/components/meeting-actions";
+import { listMeetings } from "@/lib/services/meetings";
 import { NewReportForm } from "@/components/report-actions";
 import { sql } from "@/lib/db";
-import { NOTICE_TYPE_LABEL } from "@/lib/labels";
+import { MEETING_TYPE_LABEL, NOTICE_TYPE_LABEL } from "@/lib/labels";
 
 export const metadata = { title: "조합 · VC ERP LP" };
 
@@ -23,6 +25,7 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
   const fund = await loadOrNotFound(() => getFund(me.org_id, fundId));
   const notices = (await listNotices(me.org_id, { fund_id: fund.id })).slice(0, 5);
   const reports = await listReports(me.org_id, { fund_id: fund.id });
+  const meetings = await listMeetings(me.org_id, { fund_id: fund.id });
   const [activeCommitment] = await sql`select 1 from commitments where fund_id = ${fund.id} and org_id = ${me.org_id} and status in ('active', 'closed')`;
   const isOfficer = me.role === "admin" || me.role === "officer";
   const canWrite = isOfficer && fund.data_source === "manual";
@@ -114,6 +117,29 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
           </p>
         ) : (
           <ReportTable reports={reports} showFund={false} />
+        )}
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-slate-900">총회</h2>
+          {canWrite && activeCommitment && <NewMeetingForm fundId={fund.id} />}
+        </div>
+        {meetings.length === 0 ? (
+          <p className="py-3 text-center text-sm text-slate-400">{fund.data_source === "gp_api" ? "GP가 소집한 총회가 없습니다." : "입력한 총회가 없습니다."}</p>
+        ) : (
+          <ul className="divide-y divide-slate-100 text-sm">
+            {meetings.map((m) => (
+              <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
+                <Link href={`/meetings/${m.id}`} className="font-medium text-slate-900 hover:text-emerald-700">
+                  {MEETING_TYPE_LABEL[m.meeting_type] ?? m.meeting_type} · {formatDate(m.meeting_date)}
+                </Link>
+                <span className="text-xs text-slate-500">
+                  안건 {m.agenda_count}건 · {m.can_vote ? "투표 가능" : m.status === "held" ? "개최 완료" : m.status === "cancelled" ? "취소" : "투표 마감"}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

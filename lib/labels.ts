@@ -216,3 +216,30 @@ export const CHECK_VIEW_STYLE: Record<string, string> = {
   fail: "bg-rose-100 text-rose-700",
   reference: "bg-amber-100 text-amber-800",
 };
+
+// 총회 · 투표 (R5-3)
+export const MEETING_TYPE_LABEL: Record<string, string> = { formation: "결성총회", regular: "정기총회", extraordinary: "임시총회", dissolution: "해산총회" };
+export const AGENDA_TYPE_LABEL: Record<string, string> = {
+  formation: "결성",
+  terms_amendment: "규약 변경",
+  manager_change: "운용 인력 변경",
+  report_approval: "보고 승인",
+  dissolution: "해산",
+  other: "기타",
+};
+export const VOTE_CHOICE_LABEL: Record<string, string> = { for: "찬성", against: "반대", abstain: "기권" };
+export const AGENDA_RESULT_LABEL: Record<string, string> = { pending: "결과 전", passed: "가결", rejected: "부결" };
+export const SUBMIT_STATUS_LABEL: Record<string, string> = {
+  draft: "투표안 작성 중",
+  awaiting_approval: "결재 대기",
+  approved_unsent: "승인 · 제출 전",
+  failed: "제출 실패",
+  submitted: "제출 완료",
+};
+export const SUBMIT_STATUS_STYLE: Record<string, string> = {
+  draft: "bg-slate-100 text-slate-700",
+  awaiting_approval: "bg-violet-100 text-violet-700",
+  approved_unsent: "bg-amber-100 text-amber-800",
+  failed: "bg-rose-100 text-rose-700",
+  submitted: "bg-emerald-100 text-emerald-700",
+};

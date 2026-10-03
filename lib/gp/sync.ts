@@ -9,6 +9,7 @@ import { upsertGpCalls, type GpCapitalCall } from "@/lib/services/capital-calls"
 import { importPastPayments, type ImportResult } from "@/lib/services/imported-payments";
 import { syncNotices } from "@/lib/services/notices";
 import { upsertGpReports } from "@/lib/services/reports";
+import { upsertGpMeetings } from "@/lib/services/meetings";
 
 // 받은 GP 이벤트 처리 — 동기화 (R3-4, 03 DB 설계 5장, 04 비즈니스 규칙 10-1)
 // · 이벤트는 "무엇이 바뀌었다"는 신호일 뿐이다. 본문으로 데이터를 만들지 않고 GP API로 다시 읽어 반영한다 (BR-SYNC-05)
@@ -65,6 +66,7 @@ export type FundSyncResult = {
   calls?: CallsSyncResult;
   past_payments?: ImportResult;
   reports?: { fetched: number; created: number };
+  meetings?: { fetched: number; created: number };
 };
 export type CallsSyncResult = { created: number; updated: number } | { skipped: "no_active_commitment" };
 export type LedgerSyncResult = { inserted: number; skipped?: "no_commitment" };
@@ -112,7 +114,9 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
   const past_payments = m ? await importPastPayments(orgId, m.id) : undefined;
   // 발행된 정기 보고 (R5-2). 조합원이면 출자 건 상태와 상관없이 받는다 (보고는 조합 단위)
   const reports = await upsertGpReports(orgId, fundId, await gp.get(`/funds/${gpFundId}/reports`));
-  return { fund_id: fundId, source: src.source, ledger, ...(imported ? { imported } : {}), calls, ...(past_payments ? { past_payments } : {}), reports };
+  // 소집된 총회·안건·결과 (R5-3)
+  const meetings = await upsertGpMeetings(orgId, fundId, await gp.get(`/funds/${gpFundId}/meetings`));
+  return { fund_id: fundId, source: src.source, ledger, ...(imported ? { imported } : {}), calls, ...(past_payments ? { past_payments } : {}), reports, meetings };
 }
 
 // 내게 온 GP 캐피탈콜을 회차별로 맞춘다 (R4-1, BR-CALL-01). 활성 출자 건만 (BR-CMT-07) —
@@ -320,6 +324,12 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
       const r = await syncFund(orgId, gpId, fundId, { create: true });
       return r.fund_id ? { done: true } : { done: false, reason: "GP에서 이 출자자의 조합으로 찾을 수 없음" };
     }
+    case "meeting.result_finalized": {
+      // 총회 결과 확정 (조합 전체 이벤트): 우리에게 있는 조합만 다시 맞춘다 → 안건 결과·투표 닫힘 (R5-3, BR-VOTE-06)
+      if (!fundId) return { done: false, reason: "조합 정보가 없는 이벤트" };
+      const r = await syncFund(orgId, gpId, fundId, { create: false });
+      return r.fund_id ? { done: true } : { done: false, reason: "우리 기관에 없는 조합" };
+    }
     case "notice.sent": {
       // 어떤 통지든 먼저 통지함에 받는다 (R5-1). 그 뒤 종류별 처리
       const type = String(e.payload.data?.notice_type ?? "");
@@ -338,13 +348,13 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
         if (!r.fund_id) return { done: false, reason: "GP에서 이 출자자의 조합으로 찾을 수 없음" };
         return r.calls && "skipped" in r.calls ? { done: false, reason: "결성 확인 전인 출자 건 (확인 직후 다시 맞춤)" } : { done: true };
       }
-      if (type === "report") {
-        // 보고 통지: 조합을 다시 맞추면 발행된 보고까지 읽는다 (R5-2)
+      if (type === "report" || type === "meeting") {
+        // 보고·총회 소집 통지: 조합을 다시 맞추면 발행된 보고·소집된 총회까지 읽는다 (R5-2·R5-3)
         if (!fundId) return { done: false, reason: "조합 정보가 없는 이벤트" };
         const r = await syncFund(orgId, gpId, fundId, { create: true });
         return r.fund_id ? { done: true } : { done: false, reason: "GP에서 이 출자자의 조합으로 찾을 수 없음" };
       }
-      // 총회·분배·일반 통지: 통지함까지는 받았다. 총회 내용은 R5-3, 분배는 R6 에서 더한다
+      // 분배·일반 통지: 통지함까지는 받았다. 분배는 R6 에서 더한다
       return { done: true };
     }
     default:

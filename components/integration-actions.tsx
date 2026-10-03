@@ -147,9 +147,10 @@ export function SendPendingButton() {
     const body = await res.json().catch(() => ({}));
     setPending(false);
     if (!res.ok) return setMessage(body.error?.message ?? "보내지 못했습니다");
-    const r = body.data as { sent: number; pending: number; rejected: number; acks?: { sent: number; pending: number } };
+    const r = body.data as { sent: number; pending: number; rejected: number; acks?: { sent: number; pending: number }; votes?: { sent: number; pending: number; rejected: number } };
     setMessage(
-      `제안 응답: 보냄 ${r.sent} · 못 보냄 ${r.pending} · GP 거부 ${r.rejected}` + (r.acks ? ` / 통지 확인: 보냄 ${r.acks.sent} · 못 보냄 ${r.acks.pending}` : ""),
+      `제안 응답: 보냄 ${r.sent} · 못 보냄 ${r.pending} · GP 거부 ${r.rejected}` + (r.acks ? ` / 통지 확인: 보냄 ${r.acks.sent} · 못 보냄 ${r.acks.pending}` : "") +
+        (r.votes ? ` / 투표: 보냄 ${r.votes.sent} · 못 보냄 ${r.votes.pending} · GP 거부 ${r.votes.rejected}` : ""),
     );
     router.refresh();
   }

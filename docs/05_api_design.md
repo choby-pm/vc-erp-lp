@@ -170,7 +170,8 @@ LP ERP에 더하는 것:
 | PUT | `/meetings/{meeting_id}/votes` | 투표안 저장 `{ "votes": [{ "agenda_id", "choice", "review_opinion" }] }` (결재 전) | BR-VOTE-01, 03, BR-APR-03 |
 | POST ✍ | `/meetings/{meeting_id}/vote-approvals` | 투표 결재 기안 → 승인되면 GP 제출 | BR-VOTE-02, 04 |
 | POST 🔄 | `/meetings/{meeting_id}/mark-submitted` | 수기 총회 서면 제출 기록 | BR-VOTE-04 |
-| POST 🔄 | `/meetings/{meeting_id}/resubmit` | GP 제출 다시 시도 | BR-SYNC-11 |
+| POST 🔄 | `/meetings/{meeting_id}/resubmit` | GP 제출 다시 시도 (승인된 찬반 = 지금 찬반일 때만) | BR-SYNC-11, BR-VOTE-05 |
+| POST | `/meetings/{meeting_id}/results` | 수기 총회 결과 기록 `{ results: [{ agenda_id, result }] }` → 개최 완료 | BR-VOTE-06 |
 | GET · GET | `/notices?unacknowledged=true&type=&fund_id=` · `/notices/{notice_id}` | 통지함 · 상세 | |
 | POST | `/notices` | 수기 통지 기록 | BR-NTC-01 |
 | POST 🔄 | `/notices/{notice_id}/acknowledge` | 확인 (연동이면 GP에 전달). 응답 `gp_sync { status: sent | pending | not_needed }` | BR-NTC-02 |

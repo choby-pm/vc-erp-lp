@@ -2,7 +2,7 @@ import Link from "next/link";
 import ApprovalDecision from "@/components/approval-decision";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
-import { APPROVAL_STATUS_LABEL, APPROVAL_STATUS_STYLE, APPROVAL_TARGET_LABEL, PROPOSAL_CHANNEL_LABEL, STRATEGY_LABEL, type ProposalChannel, type Strategy } from "@/lib/labels";
+import { MEETING_TYPE_LABEL, VOTE_CHOICE_LABEL, APPROVAL_STATUS_LABEL, APPROVAL_STATUS_STYLE, APPROVAL_TARGET_LABEL, PROPOSAL_CHANNEL_LABEL, STRATEGY_LABEL, type ProposalChannel, type Strategy } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
 import { sql } from "@/lib/db";
 import { getApproval } from "@/lib/services/approvals";
@@ -50,6 +50,7 @@ export default async function ApprovalDetailPage(props: PageProps<"/approvals/[a
   const a = await loadOrNotFound(() => getApproval(me.org_id, approvalId));
   const canDecide = a.status === "pending" && (me.role === "approver" || me.role === "admin") && a.requested_by !== me.id;
   if (a.target_type === "payment") return <PaymentApproval a={a} me={me} canDecide={canDecide} />;
+  if (a.target_type === "vote") return <VoteApproval a={a} me={me} canDecide={canDecide} />;
   const s = a.snapshot as SelectionSnapshot;
   // 결재 대기 중이면 지금 기준으로 다시 점검해 보여준다 (기안 뒤 다른 선정이 먼저 승인됐을 수 있다)
   const now = a.status === "pending" && a.target_type === "selection" ? await selectionCheck(me.org_id, a.target_id) : null;
@@ -188,6 +189,67 @@ async function PaymentApproval({ a, me, canDecide }: { a: Awaited<ReturnType<typ
         </dl>
       </section>
       <p className="text-xs text-slate-500">승인하면 “송금 대기”가 되고, 출자 담당이 실제 송금 뒤 송금 완료를 기록합니다. 승인됐다고 돈이 나간 것은 아닙니다 (03 DB 설계 payments).</p>
+      {a.status !== "pending" && (
+        <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm">
+          <b>{APPROVAL_STATUS_LABEL[a.status]}</b> · {a.approver_name} · {formatDateTime(a.decided_at)}
+          {a.decision_comment && <p className="mt-1 text-slate-600">{a.decision_comment}</p>}
+        </section>
+      )}
+      {canDecide && <ApprovalDecision approvalId={a.id} />}
+      {a.status === "pending" && a.requested_by === me.id && <p className="text-sm text-slate-500">본인이 올린 결재라 결재할 수 없습니다 (BR-APR-05).</p>}
+    </div>
+  );
+}
+
+type VoteSnapshot = {
+  meeting: { fund_name: string; gp_name: string; meeting_type: string; meeting_date: string; location: string | null; data_source: "gp_api" | "manual" };
+  votes: { agenda_id: string; agenda_no: number; agenda_type: string; title: string; choice: string; review_opinion: string | null }[];
+};
+
+// 투표 결재 (R5-3): 기안 시점의 안건·찬반·검토 의견. 승인되면 연동 총회는 GP에 바로 제출 (BR-VOTE-04)
+function VoteApproval({ a, me, canDecide }: { a: Awaited<ReturnType<typeof getApproval>>; me: { id: string }; canDecide: boolean }) {
+  const s = a.snapshot as VoteSnapshot;
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link href="/approvals" className="text-sm text-slate-500 hover:text-slate-700">
+          ← 결재함
+        </Link>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900">
+            [{APPROVAL_TARGET_LABEL[a.target_type]}] {s.meeting.fund_name} · {MEETING_TYPE_LABEL[s.meeting.meeting_type] ?? s.meeting.meeting_type}
+          </h1>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${APPROVAL_STATUS_STYLE[a.status]}`}>{APPROVAL_STATUS_LABEL[a.status]}</span>
+        </div>
+        <p className="mt-1 text-sm text-slate-500">
+          기안 {a.requested_by_name} · {formatDateTime(a.requested_at)}
+          {a.request_comment && ` — ${a.request_comment}`} · 총회일 {formatDate(s.meeting.meeting_date)} ·{" "}
+          <Link href={`/meetings/${a.target_id}`} className="text-emerald-700 hover:underline">
+            총회 보기
+          </Link>
+        </p>
+      </div>
+      <section className="rounded-2xl border border-slate-200 bg-white">
+        <h2 className="border-b border-slate-200 px-5 py-3 text-sm font-semibold text-slate-900">안건별 찬반 (기안 시점)</h2>
+        <ol className="divide-y divide-slate-100">
+          {s.votes.map((v) => (
+            <li key={v.agenda_id} className="px-5 py-3 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-medium text-slate-900">
+                  제{v.agenda_no}호 · {v.title}
+                </span>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${v.choice === "for" ? "bg-emerald-100 text-emerald-700" : v.choice === "against" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-700"}`}>
+                  {VOTE_CHOICE_LABEL[v.choice]}
+                </span>
+              </div>
+              {v.review_opinion && <p className="mt-1 text-slate-600">검토 의견: {v.review_opinion}</p>}
+            </li>
+          ))}
+        </ol>
+      </section>
+      <p className="text-xs text-slate-500">
+        {s.meeting.data_source === "gp_api" ? "승인하면 GP에 바로 투표가 제출됩니다. 검토 의견은 GP에 보내지 않습니다 (BR-VOTE-03·04)." : "수기 총회라 승인 뒤 서면으로 내고 \"서면 제출 완료\"를 기록합니다."}
+      </p>
       {a.status !== "pending" && (
         <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm">
           <b>{APPROVAL_STATUS_LABEL[a.status]}</b> · {a.approver_name} · {formatDateTime(a.decided_at)}

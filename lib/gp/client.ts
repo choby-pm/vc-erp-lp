@@ -95,6 +95,37 @@ async function call<T>(method: "GET" | "PUT" | "POST", path: string, body: unkno
   }
 }
 
+// 파일 내려받기 (R5-2, L36): GP 응답을 그대로 흘려보낸다. JSON 이 아니라 본문 스트림이라 call() 을 쓰지 않는다
+// 실패하면 call() 과 같은 오류 코드로 바꾼다. 감사 로그를 남긴다
+async function download(path: string, o: CallOptions): Promise<Response> {
+  const { baseUrl, apiKey } = connectionEnv(o.connection);
+  const started = Date.now();
+  let status = 0;
+  try {
+    let res: Response;
+    try {
+      res = await fetch(baseUrl + path, { headers: { Authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(TIMEOUT_MS * 3), cache: "no-store" });
+    } catch {
+      throw new AppError(503, "GP_UNAVAILABLE", "GP 시스템에 연결하지 못했습니다", "BR-SYNC-10");
+    }
+    status = res.status;
+    if (res.ok && res.body) return res;
+    if (res.status === 404 || res.status === 403) throw new AppError(404, "NOT_FOUND", "GP에서 파일을 찾을 수 없습니다");
+    throw new AppError(503, "GP_UNAVAILABLE", `GP 시스템 오류 (HTTP ${res.status})`, "BR-SYNC-10");
+  } finally {
+    await writeAudit({
+      actor_type: o.actor.type,
+      user: o.actor.user ?? null,
+      org_id: o.orgId,
+      method: "GET",
+      path: `/gp${path}`,
+      status,
+      error_code: status >= 200 && status < 300 ? null : "GP_DOWNLOAD_FAILED",
+      detail: { gp_connection_id: o.connection.id, gp_id: o.gpId, duration_ms: Date.now() - started },
+    });
+  }
+}
+
 // 기관 범위 호출: 주소는 /lps/{gp_lp_id} 뒤쪽만 넘긴다. 예) gp.get("/proposals")
 export async function gpClient(orgId: string, gpId: string, actor: GpActor = SYSTEM) {
   const link = await findLink(orgId, gpId);
@@ -105,6 +136,7 @@ export async function gpClient(orgId: string, gpId: string, actor: GpActor = SYS
     get: <T>(path: string) => call<T>("GET", scoped(path), undefined, o),
     put: <T>(path: string, body: unknown) => call<T>("PUT", scoped(path), body, o),
     post: <T>(path: string, body?: unknown) => call<T>("POST", scoped(path), body, o),
+    download: (path: string) => download(scoped(path), o),
   };
 }
 

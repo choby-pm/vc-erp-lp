@@ -8,6 +8,10 @@ import { DATA_SOURCE_LABEL, FUND_STATUSES, FUND_STATUS_LABEL, FUND_TYPE_LABEL, S
 import { loadOrNotFound } from "@/lib/page-helpers";
 import { getFund } from "@/lib/services/funds";
 import { listNotices } from "@/lib/services/notices";
+import { listReports } from "@/lib/services/reports";
+import ReportTable from "@/components/report-table";
+import { NewReportForm } from "@/components/report-actions";
+import { sql } from "@/lib/db";
 import { NOTICE_TYPE_LABEL } from "@/lib/labels";
 
 export const metadata = { title: "조합 · VC ERP LP" };
@@ -18,6 +22,8 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
   const me = (await getCurrentUser())!;
   const fund = await loadOrNotFound(() => getFund(me.org_id, fundId));
   const notices = (await listNotices(me.org_id, { fund_id: fund.id })).slice(0, 5);
+  const reports = await listReports(me.org_id, { fund_id: fund.id });
+  const [activeCommitment] = await sql`select 1 from commitments where fund_id = ${fund.id} and org_id = ${me.org_id} and status in ('active', 'closed')`;
   const isOfficer = me.role === "admin" || me.role === "officer";
   const canWrite = isOfficer && fund.data_source === "manual";
   const step = FUND_STATUSES.indexOf(fund.status);
@@ -96,6 +102,20 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
       </section>
 
       {canWrite && <FundStatusPanel fundId={fund.id} status={fund.status} hasFormation={fund.formation_date !== null} />}
+
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-slate-900">GP 보고</h2>
+          {canWrite && activeCommitment && <NewReportForm fundId={fund.id} />}
+        </div>
+        {reports.length === 0 ? (
+          <p className="py-4 text-center text-sm text-slate-400">
+            {fund.data_source === "gp_api" ? "GP가 발행한 보고가 아직 없습니다. 발행하면 자동으로 들어옵니다." : activeCommitment ? "입력한 보고가 없습니다." : "결성 확인된 출자 건이 생기면 보고를 기록합니다."}
+          </p>
+        ) : (
+          <ReportTable reports={reports} showFund={false} />
+        )}
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">

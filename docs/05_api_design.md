@@ -158,12 +158,12 @@ LP ERP에 더하는 것:
 ### 3-10. 사후관리
 | 메서드 | 주소 | 설명 | 규칙 |
 |---|---|---|---|
-| GET | `/reports?unreviewed=true&fund_id=` | GP 보고 목록 (대체된 보고 표시) | BR-RPT-05 |
+| GET | `/reports?unreviewed=true&fund_id=` · `/funds/{fund_id}/reports` | GP 보고 목록 (미검토 우선, 대체된 보고 표시, 최근 점검 결과와 판정 `pass | fail | reference`) | BR-RPT-05, L34 |
 | POST | `/funds/{fund_id}/reports` | 수기 보고 등록 `{ …, "is_correction" }` | BR-RPT-02, 05 |
 | GET | `/reports/{report_id}` | 보고 상세 (연동이면 GP 스냅샷 그대로) | |
 | POST 🔄 | `/reports/{report_id}/review` | 검토 완료 | BR-RPT-04 |
 | POST | `/reports/{report_id}/compliance-checks` | 조건 점검 기록 (연동은 비율 자동 채움) | BR-CHK-01 |
-| POST · GET | `/reports/{report_id}/attachments[/{attachment_id}]` | 수기 보고 PDF 올리기 · 내려받기 (연동은 GP에서 받아 흘려보냄) | 03 4-10 |
+| GET | `/reports/{report_id}/attachments/{attachment_id}` | 보고서 PDF 내려받기 (연동은 GP에서 받아 흘려보냄). 수기 PDF 올리기는 고도화 | 03 4-10, L36 |
 | GET | `/meetings?votable=true` | 총회 목록 (투표 가능·미제출 우선) | |
 | POST | `/funds/{fund_id}/meetings` | 수기 총회·안건 등록 | |
 | GET | `/meetings/{meeting_id}` | 안건 + 검토 의견 + 우리 찬반 + 결재·제출 상태 + 결과 | |

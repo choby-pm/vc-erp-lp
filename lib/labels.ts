@@ -198,3 +198,21 @@ export const NOTICE_TYPE_LABEL: Record<string, string> = {
   distribution: "분배",
   general: "일반",
 };
+
+// GP 보고 (R5-2)
+export const PERIOD_TYPE_LABEL: Record<string, string> = { monthly: "월간", quarterly: "분기", semiannual: "반기", annual: "연간" };
+// "2026년 2분기 보고"처럼 기간 이름 (🔗 GP periodLabel 과 같은 규칙)
+export function reportPeriodLabel(type: string, start: string) {
+  const y = start.slice(0, 4);
+  const m = Number(start.slice(5, 7));
+  if (type === "monthly") return `${y}년 ${m}월`;
+  if (type === "quarterly") return `${y}년 ${Math.floor((m - 1) / 3) + 1}분기`;
+  if (type === "semiannual") return `${y}년 ${m <= 6 ? "상반기" : "하반기"}`;
+  return `${y}년 연간`;
+}
+export const CHECK_VIEW_LABEL: Record<string, string> = { pass: "충족", fail: "미달", reference: "미달 (투자 기간 중 · 참고)" };
+export const CHECK_VIEW_STYLE: Record<string, string> = {
+  pass: "bg-emerald-100 text-emerald-700",
+  fail: "bg-rose-100 text-rose-700",
+  reference: "bg-amber-100 text-amber-800",
+};

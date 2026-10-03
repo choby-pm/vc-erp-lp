@@ -203,7 +203,7 @@ function aggregate(key: string, label: string, asOf: string, pieces: Piece[]): M
     key,
     label,
     count: pieces.length,
-    nav_missing_count: pieces.filter((p) => p.navMissing).length,
+    nav_missing_count: pieces.filter((p) => p.navMissing && p.contribution > 0).length, // 납입이 없으면 성과에 영향이 없어 세지 않는다
     commitment_amount: sum("commitment"),
     contribution_amount: sum("contribution"),
     distribution_amount: sum("distribution"),

@@ -65,6 +65,8 @@ async function lockCall(tx: postgres.TransactionSql, orgId: string, callId: stri
   const [m] = await tx<{ status: string; data_source: string }[]>`
     select m.status, f.data_source from commitments m join funds f on f.id = m.fund_id where m.id = ${c.commitment_id}
   `;
+  // 청산 확인된 출자 건은 장부를 더 바꾸지 않는다 (BR-CLOSE-02)
+  if (m.status === "closed") throw new AppError(409, "COMMITMENT_CLOSED", "청산 확인된 출자 건이라 납입을 바꿀 수 없습니다", "BR-CLOSE-02");
   return { call: await getCapitalCall(orgId, callId, t), commitmentStatus: m.status, dataSource: m.data_source };
 }
 

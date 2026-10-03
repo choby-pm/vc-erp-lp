@@ -6,7 +6,9 @@ import CommitmentLedger from "@/components/commitment-ledger";
 import DistributionTable from "@/components/distribution-table";
 import { NewDistributionForm } from "@/components/distribution-actions";
 import { listDistributions } from "@/lib/services/distributions";
-import PerformanceCard from "@/components/performance-card";
+import PerformanceCard, { multiple, pct } from "@/components/performance-card";
+import CloseActions from "@/components/close-actions";
+import { closeCheck } from "@/lib/services/closing";
 import { commitmentPerformance, todayKst } from "@/lib/services/performance";
 import { ResyncButton } from "@/components/integration-actions";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -44,6 +46,7 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
     listCallsForCommitment(me.org_id, commitmentId),
   ]);
   const distributions = await listDistributions(me.org_id, { status: "all", commitment_id: commitmentId });
+  const closing = c.status === "active" && c.fund_status === "liquidated" ? await closeCheck(me.org_id, commitmentId) : null;
   const perf = c.status === "active" || c.status === "closed" ? await commitmentPerformance(me.org_id, commitmentId, asOf) : null;
   const called = calls.filter((x) => !x.cancelled_at).reduce((s, x) => s + x.call_amount, 0);
   const unfunded = c.commitment_amount - called;
@@ -146,6 +149,31 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
           {formatDate(c.cancelled_date)} 선정 취소 — {c.cancel_reason}
         </p>
       )}
+
+      {c.status === "closed" && c.final_metrics && (
+        <section className="rounded-2xl border border-slate-300 bg-slate-50 p-5">
+          <h2 className="text-sm font-semibold text-slate-900">
+            최종 성과 <span className="font-normal text-slate-500">· {formatDate(c.closed_date)} 청산 확인 · 고정값</span>
+          </h2>
+          <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-5">
+            {[
+              ["납입", formatKRW(c.final_metrics.contribution_amount)],
+              ["분배", formatKRW(c.final_metrics.distribution_amount)],
+              ["TVPI", multiple(c.final_metrics.tvpi)],
+              ["DPI", multiple(c.final_metrics.dpi)],
+              ["IRR", pct(c.final_metrics.irr)],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-xl bg-white px-4 py-3">
+                <dt className="text-xs text-slate-500">{k}</dt>
+                <dd className="mt-0.5 text-lg font-bold tabular-nums text-slate-900">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-2 text-xs text-slate-500">청산 확인된 출자 건은 잠겨 있어 납입·분배·약정 변경·보고 기록을 더하지 않습니다 (BR-CLOSE-02).</p>
+        </section>
+      )}
+
+      {closing && <CloseActions commitmentId={c.id} initialCheck={closing} canWrite={canWrite} today={todayKst()} />}
 
       {perf && (
         <PerformanceCard

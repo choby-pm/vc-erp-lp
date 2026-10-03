@@ -163,8 +163,8 @@ export async function createManualReport(orgId: string, userId: string, fundId: 
     const [f] = await tx<{ data_source: DataSource }[]>`select data_source from funds where id = ${fundId} and org_id = ${orgId} for update`;
     if (!f) throw notFound("조합을");
     if (f.data_source === "gp_api") throw new AppError(409, "GP_MANAGED_FIELD", "연동 조합의 보고는 GP에서 자동으로 들어옵니다", "BR-RPT-01");
-    const [m] = await tx`select 1 from commitments where fund_id = ${fundId} and status in ('active', 'closed')`;
-    if (!m) throw new AppError(409, "COMMITMENT_NOT_ACTIVE", "결성 확인된 출자 건이 있는 조합만 보고를 기록합니다", "BR-CMT-07");
+    const [m] = await tx`select 1 from commitments where fund_id = ${fundId} and status = 'active'`;
+    if (!m) throw new AppError(409, "COMMITMENT_NOT_ACTIVE", "활성 출자 건이 있는 조합만 보고를 기록합니다 (청산 확인 뒤에는 문서를 더하지 않음, BR-CLOSE-02)", "BR-CMT-07");
     if (input.period_start > input.period_end) throw new AppError(422, "INVALID_DATE", "기간 시작일이 종료일보다 늦습니다", "BR-RPT-02", { fields: { period_start: "시작일을 확인하세요" } });
     if (input.received_date < input.period_end) {
       throw new AppError(422, "INVALID_DATE", "받은 날은 보고 기간이 끝난 뒤여야 합니다", "BR-RPT-02", { fields: { received_date: "기간 종료일 이후 날짜를 입력하세요" } });

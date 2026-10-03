@@ -42,6 +42,19 @@ export type CommitmentDetail = CommitmentListItem & {
   formation_deadline: string | null;
   key_person_condition: string | null;
   track_min_fund_size_amount: number | null;
+  closed_date: string | null;
+  final_metrics: FinalMetrics | null; // 청산 확인 때 고정한 최종 성과 (BR-CLOSE-02)
+};
+
+export type FinalMetrics = {
+  as_of: string;
+  commitment_amount: number;
+  contribution_amount: number;
+  distribution_amount: number;
+  dpi: number | null;
+  tvpi: number | null;
+  irr: number | null;
+  irr_note: string | null;
 };
 
 const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -54,7 +67,7 @@ const baseQuery = (db: Db, orgId: string) => db`
          case when f.data_source = 'gp_api'
               then coalesce((select sum(amount) from gp_ledger_entries e where e.commitment_id = m.id and e.entry_type = 'commitment'), 0)::bigint end as gp_commitment_amount,
          r.recon_status, m.confirmed_date, m.created_at,
-         m.cancelled_date, m.cancel_reason, f.formation_date, f.fund_size_amount,
+         m.cancelled_date, m.cancel_reason, f.formation_date, f.fund_size_amount, m.closed_date::text as closed_date, m.final_metrics,
          s.max_commitment_ratio, s.formation_deadline, s.key_person_condition, t.min_fund_size_amount as track_min_fund_size_amount
   from commitments m
   join funds f on f.id = m.fund_id

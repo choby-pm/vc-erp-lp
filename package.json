@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
     "db:seed": "node --env-file=.env.local scripts/seed-demo.mjs",
+    "db:seed-scenario": "node --env-file=.env.local scripts/seed-scenario.mjs",
     "gp:link": "node --env-file=.env.local scripts/gp-link.mjs",
     "db:demo-refresh": "node --env-file=.env.local scripts/demo-refresh.mjs",
     "check:numbers": "node --env-file=.env.local scripts/check-numbers.mjs"

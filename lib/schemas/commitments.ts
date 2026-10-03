@@ -27,6 +27,19 @@ export const commitmentCancelSchema = z.object({
 });
 export type CommitmentCancelInput = z.infer<typeof commitmentCancelSchema>;
 
+// 약정 변경 (BR-CMT-06): 새 약정액 · 변경일 · 사유
+export const commitmentAdjustSchema = z.object({
+  new_amount: amount("새 약정액은 0보다 커야 합니다"),
+  entry_date: z.iso.date("변경일을 입력하세요"),
+  memo: z.string("변경 사유를 입력하세요").trim().min(1, "변경 사유를 입력하세요 (예: 규약 변경 안건 가결)").max(500, "사유는 500자 이하로 입력하세요"),
+});
+export type CommitmentAdjustInput = z.infer<typeof commitmentAdjustSchema>;
+
+// 대사 불일치 확인 (BR-REC-05)
+export const reconResolveSchema = z.object({
+  resolution_memo: z.string("확인 사유를 입력하세요").trim().min(1, "확인 사유를 입력하세요").max(500, "사유는 500자 이하로 입력하세요"),
+});
+
 export const commitmentListQuerySchema = z.object({
   status: z.enum(COMMITMENT_STATUSES).optional(),
 });

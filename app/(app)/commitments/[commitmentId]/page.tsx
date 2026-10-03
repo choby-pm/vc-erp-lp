@@ -1,8 +1,9 @@
 import Link from "next/link";
 import CommitmentActions from "@/components/commitment-actions";
+import CommitmentLedger from "@/components/commitment-ledger";
 import { ResyncButton } from "@/components/integration-actions";
 import { getCurrentUser } from "@/lib/auth/session";
-import { formatDate, formatKRW, formatPercent } from "@/lib/format";
+import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
 import {
   COMMITMENT_ORIGIN_LABEL,
   COMMITMENT_STATUS_LABEL,
@@ -13,17 +14,21 @@ import {
   RECON_STATUS_STYLE,
 } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
+import { getLedger, listReconciliations } from "@/lib/services/commitment-ledger";
 import { buildFormationCheck, getCommitment } from "@/lib/services/commitments";
 
 export const metadata = { title: "출자 건 · VC ERP LP" };
 
+const ENTRY_LABEL = { commitment: "약정", contribution: "납입", distribution: "분배" } as const;
+
 // 출자 건 상세 (R3-6): 선정 조건 · 결성 정보 · 결성 확인표 · 약정(우리 장부 vs GP 원장 사본)
-// 장부 나란히 보기·약정 변경·대사 확인 메모는 R3-6b
+// + 장부 나란히 보기 · 약정 변경 · 대사 불일치 확인 · 대사 이력 (R3-6b)
 export default async function CommitmentDetailPage(props: PageProps<"/commitments/[commitmentId]">) {
   const { commitmentId } = await props.params;
   const me = (await getCurrentUser())!;
   const c = await loadOrNotFound(() => getCommitment(me.org_id, commitmentId));
   const linked = c.data_source === "gp_api";
+  const [ledger, history] = await Promise.all([getLedger(me.org_id, commitmentId), linked ? listReconciliations(me.org_id, commitmentId) : Promise.resolve([])]);
   const canWrite = me.role === "admin" || me.role === "officer";
 
   const cards: [string, string][] = [
@@ -124,10 +129,30 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
         </p>
       )}
 
-      {c.status === "active" && linked && c.recon_status === "mismatched" && (
-        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          우리 장부 약정({formatKRW(c.commitment_amount)})과 GP 원장 사본({formatKRW(c.gp_commitment_amount)})이 다릅니다. GP에서 약정이 바뀌었으면 약정 변경으로 맞춥니다 (R3-6b).
-        </p>
+      {c.status !== "cancelled" && <CommitmentLedger commitmentId={c.id} ledger={ledger} canWrite={canWrite} active={c.status === "active"} />}
+
+      {linked && history.length > 0 && (
+        <section className="rounded-2xl border border-slate-200 bg-white">
+          <h2 className="border-b border-slate-200 px-5 py-3 text-sm font-semibold text-slate-900">대사 이력 (추가만 되는 기록, 위가 최신)</h2>
+          <ol className="divide-y divide-slate-100">
+            {history.map((h) => (
+              <li key={h.id} className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-2.5 text-sm">
+                <span className="text-slate-800">
+                  {ENTRY_LABEL[h.entry_type]}{" "}
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${RECON_STATUS_STYLE[h.recon_status]}`}>{RECON_STATUS_LABEL[h.recon_status]}</span>{" "}
+                  <span className="tabular-nums text-slate-600">
+                    우리 {formatKRW(h.our_amount)} · GP {formatKRW(h.gp_amount)}
+                  </span>
+                  {h.resolution_memo && <span className="ml-2 text-slate-500">— {h.resolution_memo}</span>}
+                </span>
+                <span className="text-xs text-slate-500">
+                  {h.resolved_by_name ? `${h.resolved_by_name} · ` : ""}
+                  {formatDateTime(h.checked_at)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
       )}
     </div>
   );

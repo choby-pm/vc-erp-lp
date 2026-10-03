@@ -176,6 +176,14 @@ GP: 조합 결성       ──웹훅──→ LP: 결성·약정 원장 사본 �
 | 주기 작업 | LP `/api/cron/sync` 하루 1회, `/api/cron/reset-demo` 매일 03:00 KST (L23) |
 | 접근 | 배포 보호(Vercel 로그인 요구)가 꺼져 있어야 GP 웹훅이 들어온다. GP 설정과 맞춘다 |
 
+> 구현 (2026-10-03, L26)
+> - 배포 주소: LP https://vc-erp-lp.vercel.app · GP https://vc-erp-gp.vercel.app (둘 다 배포 보호 꺼짐)
+> - LP Neon 브랜치 `demo-seed`(컴퓨트 없음)·`demo` 를 **둘 다 main 에서** 만들었다. demo 가 demo-seed 의 자식이 아니라서 갱신 때 백업 브랜치가 생기지 않는다 (GP는 자식이 있어 갱신마다 백업이 남는다)
+> - 연동 비밀 값은 로컬 값을 쓰지 않고 배포용으로 새로 만들었다: GP `LP_SYSTEM_API_KEY` = LP `GP_DEMO_API_KEY`, GP `LP_WEBHOOK_SECRET` = LP `GP_DEMO_WEBHOOK_SECRET`. GP `LP_SYSTEM_WEBHOOK_URL` = 배포 LP 웹훅 주소
+> - 코드: `lib/db.ts` (APP_DATABASE_URL), `/api/cron/reset-demo`, `lib/services/demo.ts`, `scripts/demo-refresh.mjs`, `vercel.ts` (sin1, sync 매일 00:30 UTC, reset-demo 18:00 UTC)
+> - 짝 맞춘 갱신 절차: 로컬 LP "지금 가져오기"로 가져오기 위치를 GP 최신에 맞춤 → GP `npm run db:demo-refresh` → 바로 LP `npm run db:demo-refresh`
+> - 검수 (2026-10-03): 배포 GP 통지 발송 → 배포 LP 자동 접수(웹훅) ✔, 배포 LP 서류 심사 → 배포 GP "검토 중, LP 직접" ✔, 배포 LP 지금 가져오기 ✔. 다음 날 초기화 뒤 연동은 아직 확인 전
+
 **검수 방법**: 배포 GP에서 출자 제안·결성 → 배포 LP에 자동으로 들어옴. 배포 LP에서 선정 → 배포 GP 화면 "확약, LP 직접". 다음 날 초기화 뒤에도 연동이 이어지는지 확인.
 
 ---

@@ -8,7 +8,8 @@ const globalForDb = globalThis as unknown as { sql?: postgres.Sql };
 
 export const sql =
   globalForDb.sql ??
-  postgres(process.env.DATABASE_URL!, {
+  // 배포 사이트는 데모 DB(Neon demo 브랜치)를 APP_DATABASE_URL 로 쓴다. 로컬 개발은 DATABASE_URL(main) (L23, 🔗 GP D44)
+  postgres((process.env.APP_DATABASE_URL || process.env.DATABASE_URL)!, {
     // Neon 커넥션 풀러(pgbouncer)를 거치므로 준비된 문장(prepared statement)을 쓰지 않는다
     prepare: false,
     types: {

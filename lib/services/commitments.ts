@@ -228,6 +228,11 @@ export async function confirmCommitment(orgId: string, userId: string, commitmen
     await tx`update commitments set status = 'active', confirmed_date = ${today()} where id = ${commitmentId}`;
     if (c.data_source === "gp_api") await reconcile(t, orgId, commitmentId, "commitment");
   });
+  // 연동: 활성이 된 뒤에야 캐피탈콜을 받으므로 한 번 더 맞춘다 (R4-1). GP가 멈춰 있으면 다음 동기화가 채운다
+  if (before.data_source === "gp_api") {
+    const { resyncFund } = await import("@/lib/gp/sync");
+    await resyncFund(orgId, before.fund_id, { type: "system" }).catch(() => null);
+  }
   return getCommitment(orgId, commitmentId);
 }
 

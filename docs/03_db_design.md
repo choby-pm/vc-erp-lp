@@ -390,6 +390,7 @@ LP ERP에 더하는 것:
 | `purpose` | text | |
 | ❗ `data_source` | text | |
 | `gp_payment_status` | text | GP가 본 우리 납입 상태 (🔗 GP의 `payment_status`). 연동만 |
+| `gp_paid_amount` | bigint | GP가 본 우리 납입액 (🔗 GP `my_paid_amount`). 연동만 (R4, 마이그레이션 006) |
 | `cancelled_at` | timestamptz | GP가 취소한 요청 |
 
 > **설계 의도**: 우리 쪽 납입 상태(결재 대기·송금 완료 등)는 저장하지 않고 `payments` 에서 계산한다.
@@ -405,6 +406,7 @@ LP ERP에 더하는 것:
 | ❗ `status` | text | `requested`(결재 대기) → `approved`(송금 대기) → `paid`(송금 완료) / `rejected`(반려) / `cancelled` |
 | `paid_date` | date | 실제 송금일. `paid` 면 필수 |
 | `bank_reference` | text | 이체 확인 번호 등 |
+| ❗ `origin` | text | `approval`(결재를 거친 납입) / `imported`(가져온 출자 건의 과거 납입, GP 원장 근거, 결재 없음, L27). `imported` 는 `paid` 로만 (마이그레이션 006) |
 
 > **설계 의도**: 결재와 송금을 나눈다. 승인됐다고 돈이 나간 게 아니다.
 > `paid` 가 되는 순간 같은 트랜잭션으로 장부에 `contribution` 행을 추가하고 대사를 다시 한다.

@@ -139,7 +139,8 @@ LP ERP에 더하는 것:
 | 메서드 | 주소 | 설명 | 규칙 |
 |---|---|---|---|
 | GET | `/capital-calls?status=unpaid\|overdue\|all` | 모든 출자 건의 캐피탈콜 (납입 상태 계산) | BR-CALL-05 |
-| POST | `/commitments/{commitment_id}/capital-calls` | 수기 등록 | BR-CALL-02, 03 |
+| GET · POST | `/commitments/{commitment_id}/capital-calls` | 이 출자 건의 캐피탈콜 · 수기 등록 `{ call_no?, call_date, due_date, call_amount, purpose }` | BR-CALL-02, 03 |
+| GET | `/capital-calls/{call_id}` | 캐피탈콜 상세 (우리 납입 합계·상태, GP가 본 상태) | BR-CALL-05 |
 | POST 🔄 | `/capital-calls/{call_id}/cancel` | 수기 취소 | BR-CALL-04 |
 | POST ✍💰 | `/capital-calls/{call_id}/payments` | 납입 만들기 + 결재 기안 `{ "amount", "planned_date", "request_comment" }` | BR-PAY-02, BR-APR-01 |
 | POST 🔄💰 | `/payments/{payment_id}/mark-paid` | 송금 완료 기록 `{ "paid_date", "bank_reference" }` → 장부 + 대사 (4-2) | BR-PAY-03, 04 |

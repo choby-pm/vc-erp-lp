@@ -5,6 +5,7 @@ import { SYNC_JOB, pullConnection, type PullResult } from "@/lib/gp/inbox";
 import { runExclusive, type JobTrigger } from "@/lib/services/jobs";
 import { reconcile, type EntryType } from "@/lib/services/reconciliation";
 import { autoConfirmImported, ensureImportedCommitment } from "@/lib/services/commitments";
+import { upsertGpCalls, type GpCapitalCall } from "@/lib/services/capital-calls";
 
 // 받은 GP 이벤트 처리 — 동기화 (R3-4, 03 DB 설계 5장, 04 비즈니스 규칙 10-1)
 // · 이벤트는 "무엇이 바뀌었다"는 신호일 뿐이다. 본문으로 데이터를 만들지 않고 GP API로 다시 읽어 반영한다 (BR-SYNC-05)
@@ -53,7 +54,14 @@ const rate = (v: number | null | undefined) => (v === null || v === undefined ? 
 
 // ─── 조합 · 원장 맞추기 ─────────────────────────────────────────────────────
 
-export type FundSyncResult = { fund_id: string | null; source: "member" | "proposal" | null; ledger?: LedgerSyncResult; imported?: "created" | "confirmed" };
+export type FundSyncResult = {
+  fund_id: string | null;
+  source: "member" | "proposal" | null;
+  ledger?: LedgerSyncResult;
+  imported?: "created" | "confirmed";
+  calls?: CallsSyncResult;
+};
+export type CallsSyncResult = { created: number; updated: number } | { skipped: "no_active_commitment" };
 export type LedgerSyncResult = { inserted: number; skipped?: "no_commitment" };
 
 // 연동 조합 하나를 GP 현재 상태로 맞춘다.
@@ -93,7 +101,17 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
   const ledger = await syncLedger(orgId, gpId, gpFundId, fundId, opts.actor);
   const confirmed = commitmentId ? await autoConfirmImported(orgId, fundId) : false;
   const imported = confirmed ? "confirmed" : !had && commitmentId ? "created" : undefined;
-  return { fund_id: fundId, source: src.source, ledger, ...(imported ? { imported } : {}) };
+  const calls = await syncCalls(orgId, gpId, gpFundId, fundId, opts.actor);
+  return { fund_id: fundId, source: src.source, ledger, ...(imported ? { imported } : {}), calls };
+}
+
+// 내게 온 GP 캐피탈콜을 회차별로 맞춘다 (R4-1, BR-CALL-01). 활성 출자 건만 (BR-CMT-07) —
+// 결성 확인 전에 온 캐피탈콜은 결성 확인 직후 다시 맞출 때 들어온다
+export async function syncCalls(orgId: string, gpId: string, gpFundId: string, fundId: string, actor?: GpActor): Promise<CallsSyncResult> {
+  const [commitment] = await sql<{ id: string }[]>`select id from commitments where org_id = ${orgId} and fund_id = ${fundId} and status = 'active'`;
+  if (!commitment) return { skipped: "no_active_commitment" };
+  const gp = await gpClient(orgId, gpId, actor);
+  return upsertGpCalls(orgId, commitment.id, await gp.get<GpCapitalCall[]>(`/funds/${gpFundId}/capital-calls`));
 }
 
 type FundSource = { core: GpFundCore; terms: GpTerms; fundSize: number | null };
@@ -299,7 +317,14 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
         const skipped = r.filter((x) => x.result === "skipped");
         return skipped.length === r.length ? { done: false, reason: skipped.map((x) => x.reason).join(", ") } : { done: true };
       }
-      return { done: false, reason: `통지(${type || "알 수 없음"})는 R4~R6에서 처리 (L22)` };
+      if (type === "capital_call") {
+        // 캐피탈콜 통지: 조합을 다시 맞추면 캐피탈콜까지 읽는다 (R4-1)
+        if (!fundId) return { done: false, reason: "조합 정보가 없는 이벤트" };
+        const r = await syncFund(orgId, gpId, fundId, { create: true });
+        if (!r.fund_id) return { done: false, reason: "GP에서 이 출자자의 조합으로 찾을 수 없음" };
+        return r.calls && "skipped" in r.calls ? { done: false, reason: "결성 확인 전인 출자 건 (확인 직후 다시 맞춤)" } : { done: true };
+      }
+      return { done: false, reason: `통지(${type || "알 수 없음"})는 R5~R6에서 처리 (L22)` };
     }
     default:
       return { done: false, reason: `${e.event_type} 은(는) 아직 다루지 않는 이벤트 (L22)` };

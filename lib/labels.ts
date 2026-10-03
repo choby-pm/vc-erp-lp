@@ -153,3 +153,22 @@ export const RECON_STATUS_STYLE: Record<ReconStatus, string> = {
   mismatched: "bg-rose-100 text-rose-700",
   resolved: "bg-sky-100 text-sky-700",
 };
+
+// 캐피탈콜 · 우리 쪽 납입 상태 (R4, BR-CALL-05). 저장하지 않고 납입에서 계산한다
+export type CallPaymentStatus = "pending" | "partial" | "paid" | "overdue" | "cancelled";
+export const CALL_PAYMENT_STATUS_LABEL: Record<CallPaymentStatus, string> = {
+  pending: "미납",
+  partial: "일부 납입",
+  paid: "완납",
+  overdue: "기한 경과",
+  cancelled: "취소",
+};
+export const CALL_PAYMENT_STATUS_STYLE: Record<CallPaymentStatus, string> = {
+  pending: "bg-amber-100 text-amber-800",
+  partial: "bg-sky-100 text-sky-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  overdue: "bg-rose-100 text-rose-700",
+  cancelled: "bg-slate-200 text-slate-500",
+};
+// GP가 본 우리 납입 상태 (🔗 GP v_capital_call_item_status.payment_status)
+export const GP_PAYMENT_STATUS_LABEL: Record<string, string> = { pending: "미납", partial: "일부 납입", paid: "완납", overdue: "기한 경과" };

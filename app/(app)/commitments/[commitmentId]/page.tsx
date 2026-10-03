@@ -1,4 +1,6 @@
 import Link from "next/link";
+import CapitalCallTable from "@/components/capital-call-table";
+import { NewCallForm } from "@/components/capital-call-actions";
 import CommitmentActions from "@/components/commitment-actions";
 import CommitmentLedger from "@/components/commitment-ledger";
 import { ResyncButton } from "@/components/integration-actions";
@@ -14,6 +16,7 @@ import {
   RECON_STATUS_STYLE,
 } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
+import { listCallsForCommitment } from "@/lib/services/capital-calls";
 import { getLedger, listReconciliations } from "@/lib/services/commitment-ledger";
 import { buildFormationCheck, getCommitment } from "@/lib/services/commitments";
 
@@ -28,7 +31,13 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
   const me = (await getCurrentUser())!;
   const c = await loadOrNotFound(() => getCommitment(me.org_id, commitmentId));
   const linked = c.data_source === "gp_api";
-  const [ledger, history] = await Promise.all([getLedger(me.org_id, commitmentId), linked ? listReconciliations(me.org_id, commitmentId) : Promise.resolve([])]);
+  const [ledger, history, calls] = await Promise.all([
+    getLedger(me.org_id, commitmentId),
+    linked ? listReconciliations(me.org_id, commitmentId) : Promise.resolve([]),
+    listCallsForCommitment(me.org_id, commitmentId),
+  ]);
+  const called = calls.filter((x) => !x.cancelled_at).reduce((s, x) => s + x.call_amount, 0);
+  const unfunded = c.commitment_amount - called;
   const canWrite = me.role === "admin" || me.role === "officer";
 
   const cards: [string, string][] = [
@@ -127,6 +136,24 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
         <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
           {formatDate(c.cancelled_date)} 선정 취소 — {c.cancel_reason}
         </p>
+      )}
+
+      {(c.status === "active" || calls.length > 0) && (
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-900">
+              캐피탈콜 <span className="font-normal text-slate-500">· 요청 합계 {formatKRW(called)} · 남은 약정 {formatKRW(unfunded)}</span>
+            </h2>
+            {canWrite && !linked && c.status === "active" && (
+              <NewCallForm commitmentId={c.id} nextNo={Math.max(0, ...calls.map((x) => x.call_no)) + 1} unfunded={unfunded} />
+            )}
+          </div>
+          {calls.length === 0 ? (
+            <p className="py-4 text-center text-sm text-slate-400">{linked ? "GP에서 받은 캐피탈콜이 없습니다. GP가 발송하면 자동으로 들어옵니다." : "입력한 캐피탈콜이 없습니다."}</p>
+          ) : (
+            <CapitalCallTable calls={calls} showFund={false} canCancel={canWrite && !linked} />
+          )}
+        </section>
       )}
 
       {c.status !== "cancelled" && <CommitmentLedger commitmentId={c.id} ledger={ledger} canWrite={canWrite} active={c.status === "active"} />}

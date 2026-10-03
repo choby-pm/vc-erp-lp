@@ -207,6 +207,8 @@ LP ERP에 더하는 것:
 
 ### 4-3. 출자 계획
 
+> **distributions 추가 (R6-1, 마이그레이션 010, L39)**: `gp_status`(GP가 본 분배 상태 confirmed/paid/cancelled, 연동만), `received_via`(recorded 담당자 기록 / imported 가져온 수령)
+
 > **funds 추가 (R5-4, 마이그레이션 009, L37)**: `gp_key_persons`·`gp_key_persons_prev`(GP 대표·핵심 운용 인력 지금·직전 목록, jsonb), `key_person_changed_at`, `key_person_reviewed_at`·`key_person_reviewed_by` — 핵심 운용 인력 변경 감지와 확인
 
 #### `budgets` — 출자 예산

@@ -5,7 +5,6 @@ import { checkView } from "@/lib/services/reports";
 import { mismatchSince, type EntryType } from "@/lib/services/reconciliation";
 
 // 주의 목록 (R5-4, 04 비즈니스 규칙 14장). 저장하지 않고 매번 계산한다. 모든 항목은 그 기관 것만 (BR-ORG-02)
-// · 수령 대기 분배는 R6에서 더한다
 // · 보고 기한(L35): 출자 건이 활성이 된 날(결성 확인일)이 속한 분기부터, 분기 말 + 45일까지 그 분기 말을 포함하는 보고가 있어야 한다 (L11)
 // · 조건 점검(L34): 투자 기간이 끝난 뒤 보고의 미달만 (투자 기간 중 미달은 참고)
 
@@ -115,6 +114,20 @@ export async function getAlerts(orgId: string, user: { id: string; role: Role })
     label: "약정 조건 미달 (투자 기간 이후)",
     tone: "red",
     items: reports.filter((r) => r.check_result && checkView(r.check_result, r.period_end, r.investment_end) === "fail").map((r) => ({ title: `${r.fund_name} · 기준일 ${r.period_end}`, detail: "주목적 의무 비율 미달", href: `/reports/${r.id}` })),
+  });
+
+  // 5-1. 수령 대기 분배 (R6-1, L39) — GP가 이미 지급했으면 "GP 지급됨 · 수령 기록 전"
+  const dists = await sql<{ id: string; fund_name: string; distribution_no: number; distribution_date: string; amount: number; gp_status: string | null }[]>`
+    select d.id, f.name as fund_name, d.distribution_no, d.distribution_date, d.amount, d.gp_status
+    from distributions d join commitments m on m.id = d.commitment_id join funds f on f.id = m.fund_id
+    where d.org_id = ${orgId} and d.status = 'announced'
+    order by d.distribution_date
+  `;
+  push({
+    key: "distributions",
+    label: "수령 대기 분배",
+    tone: "amber",
+    items: dists.map((d) => ({ title: `${d.fund_name} · ${d.distribution_no}회`, detail: `${formatKRW(Number(d.amount))}${d.gp_status === "paid" ? " · GP 지급됨, 수령 기록 전" : ""}`, href: "/distributions", date: d.distribution_date })),
   });
 
   // 6. 총회 — 투표할 것(미제출) · 투표 제출 실패

@@ -179,8 +179,8 @@ LP ERP에 더하는 것:
 ### 3-11. 분배
 | 메서드 | 주소 | 설명 | 규칙 |
 |---|---|---|---|
-| GET | `/distributions?status=announced\|received\|all` | 분배 목록 | |
-| POST | `/commitments/{commitment_id}/distributions` | 수기 등록 | BR-DIST-02 |
+| GET | `/distributions?status=announced\|received\|all` · `/distributions/{distribution_id}` | 분배 목록 (기본 수령 대기) · 상세 (원금 반환·수익, GP 단계별, GP가 본 상태) | L39, L41 |
+| GET · POST | `/commitments/{commitment_id}/distributions` | 출자 건 분배 · 수기 등록 `{ distribution_no?, distribution_date, return_of_capital_amount, profit_amount, is_final }` | BR-DIST-02 |
 | POST 🔄💰 | `/distributions/{distribution_id}/receive` | 수령 기록 `{ "received_date" }` → 장부 + 대사 | BR-DIST-03 |
 | POST 🔄💰 | `/distributions/{distribution_id}/cancel-receipt` | 수령 기록 정정 (원래 날짜 취소 행) | BR-DIST-05 |
 

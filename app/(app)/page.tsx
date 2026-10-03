@@ -63,7 +63,7 @@ export default async function Home() {
             ))}
           </div>
         )}
-        <p className="text-xs text-slate-400">수령 대기 분배는 R6, 예산 사용·포트폴리오 합계·30일 일정은 R7에서 이 화면에 더합니다.</p>
+        <p className="text-xs text-slate-400">예산 사용·포트폴리오 합계·30일 일정은 R7에서 이 화면에 더합니다.</p>
       </section>
     </div>
   );

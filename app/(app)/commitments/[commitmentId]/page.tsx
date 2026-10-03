@@ -3,6 +3,9 @@ import CapitalCallTable from "@/components/capital-call-table";
 import { NewCallForm } from "@/components/capital-call-actions";
 import CommitmentActions from "@/components/commitment-actions";
 import CommitmentLedger from "@/components/commitment-ledger";
+import DistributionTable from "@/components/distribution-table";
+import { NewDistributionForm } from "@/components/distribution-actions";
+import { listDistributions } from "@/lib/services/distributions";
 import { ResyncButton } from "@/components/integration-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
@@ -36,6 +39,7 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
     linked ? listReconciliations(me.org_id, commitmentId) : Promise.resolve([]),
     listCallsForCommitment(me.org_id, commitmentId),
   ]);
+  const distributions = await listDistributions(me.org_id, { status: "all", commitment_id: commitmentId });
   const called = calls.filter((x) => !x.cancelled_at).reduce((s, x) => s + x.call_amount, 0);
   const unfunded = c.commitment_amount - called;
   const canWrite = me.role === "admin" || me.role === "officer";
@@ -152,6 +156,25 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
             <p className="py-4 text-center text-sm text-slate-400">{linked ? "GP에서 받은 캐피탈콜이 없습니다. GP가 발송하면 자동으로 들어옵니다." : "입력한 캐피탈콜이 없습니다."}</p>
           ) : (
             <CapitalCallTable calls={calls} showFund={false} canCancel={canWrite && !linked} />
+          )}
+        </section>
+      )}
+
+      {(c.status === "active" || distributions.length > 0) && (
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-900">
+              분배{" "}
+              <span className="font-normal text-slate-500">
+                · 수령 합계 {formatKRW(distributions.filter((d) => d.status === "received").reduce((s, d) => s + d.amount, 0))}
+              </span>
+            </h2>
+            {canWrite && !linked && c.status === "active" && <NewDistributionForm commitmentId={c.id} nextNo={Math.max(0, ...distributions.map((d) => d.distribution_no)) + 1} />}
+          </div>
+          {distributions.length === 0 ? (
+            <p className="py-4 text-center text-sm text-slate-400">{linked ? "GP가 확정한 분배가 없습니다. 확정하면 자동으로 들어옵니다." : "입력한 분배가 없습니다."}</p>
+          ) : (
+            <DistributionTable rows={distributions} showFund={false} canWrite={canWrite && c.status === "active"} />
           )}
         </section>
       )}

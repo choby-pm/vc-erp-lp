@@ -6,6 +6,7 @@
 // 사용법
 //   npm run db:migrate          먼저 main 에 마이그레이션
 //   npm run db:demo-refresh     main 의 지금 상태를 데모 원본으로 삼고 데모 DB를 바로 초기화
+//   npm run db:demo-refresh -- --prune-backups   갱신 뒤 자식이 없는 옛 백업 브랜치를 지운다
 //
 // ⚠️ main 에 테스트로 넣은 데이터도 그대로 데모에 들어간다. 데모에 보일 상태인지 확인하고 실행한다
 // ⚠️ GP와 짝을 맞춘다 (L23): GP 에서 먼저 npm run db:demo-refresh → 바로 이어서 LP 에서 실행.
@@ -47,7 +48,8 @@ try {
   await api(`/branches/${DEMO_SEED_BRANCH_ID}/restore`, { source_branch_id: main.id });
 } catch (err) {
   if (!String(err.message).includes("preserve_under_name")) throw err;
-  const backup = `demo-seed-backup-${new Date().toISOString().slice(0, 10)}`;
+  // 하루에 여러 번 갱신해도 이름이 겹치지 않게 시각까지 붙인다
+  const backup = `demo-seed-backup-${new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')}`;
   console.log(`  demo-seed 에 자식 브랜치가 있어 이전 상태를 ${backup} 로 남깁니다`);
   await api(`/branches/${DEMO_SEED_BRANCH_ID}/restore`, { source_branch_id: main.id, preserve_under_name: backup });
 }
@@ -55,4 +57,15 @@ await waitIdle();
 console.log("2/2 demo ← demo-seed (데모 DB 초기화)");
 await api(`/branches/${DEMO_BRANCH_ID}/restore`, { source_branch_id: DEMO_SEED_BRANCH_ID });
 await waitIdle();
+
+// --prune-backups: 자식 브랜치가 없는 옛 백업(demo-seed-backup-*)을 지운다 (무료 요금제 브랜치 개수 제한).
+// demo 를 demo-seed 로 되돌리면 demo 의 부모가 새 demo-seed 로 바뀌어 옛 백업은 자식이 없어진다. 되돌릴 수 없으므로 붙였을 때만
+if (process.argv.includes('--prune-backups')) {
+  const { branches: all } = await api('/branches');
+  const parents = new Set(all.map((b) => b.parent_id).filter(Boolean));
+  for (const b of all.filter((x) => x.name.startsWith('demo-seed-backup-') && !parents.has(x.id))) {
+    await fetch(`https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches/${b.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${NEON_API_KEY}` } });
+    console.log(`  옛 백업 ${b.name} 삭제`);
+  }
+}
 console.log("✔ 데모 DB를 새로 고쳤습니다");

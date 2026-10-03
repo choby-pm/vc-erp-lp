@@ -25,7 +25,7 @@ export default async function CapitalCallsPage(props: PageProps<"/capital-calls"
       <div>
         <h1 className="text-2xl font-bold text-slate-900">캐피탈콜</h1>
         <p className="mt-1 text-sm text-slate-500">
-          GP가 보낸 납입 요청. 연동 GP는 자동으로 들어오고, 수기 조합은 출자 건 화면에서 입력합니다. 납입은 결재를 거쳐 송금 기록합니다 (R4-2).
+          GP가 보낸 납입 요청. 연동 GP는 자동으로 들어오고, 수기 조합은 출자 건 화면에서 입력합니다. 회차를 누르면 납입을 기안하고, 결재가 승인되면 송금 완료를 기록합니다.
         </p>
       </div>
 

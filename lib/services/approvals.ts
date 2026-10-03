@@ -4,6 +4,7 @@ import { AppError, assertUuid, notFound } from "@/lib/api/errors";
 import type { ApprovalListQuery } from "@/lib/schemas/approvals";
 import type { GpActor } from "@/lib/gp/client";
 import { sendGpResponse } from "@/lib/gp/responses";
+import { applyPaymentDecision } from "./payments";
 import { applySelectionApproval } from "./selection";
 
 // 결재 (R2-4, L4, BR-APR-01~08). 대상: 선정(selection) · 납입(payment, R4) · 투표(vote, R5)
@@ -30,12 +31,19 @@ export type ApprovalItem = {
 const listSql = (orgId: string) => sql`
   select a.id, a.target_type, a.target_id, a.status, a.requested_by, r.name as requested_by_name, a.requested_at, a.request_comment,
          d.name as approver_name, a.decided_at, a.decision_comment, a.snapshot,
-         case a.target_type when 'selection' then coalesce(f.name, '') else '' end as title
+         case a.target_type
+           when 'selection' then coalesce(f.name, '')
+           when 'payment' then coalesce(pf.name || ' · ' || pc.call_no || '회 ' || to_char(pp.amount / 100000000.0, 'FM999,990.##') || '억 원', '')
+           else '' end as title
   from approvals a
   join users r on r.id = a.requested_by
   left join users d on d.id = a.approver_id
   left join proposals p on a.target_type = 'selection' and p.id = a.target_id
   left join funds f on f.id = p.fund_id
+  left join payments pp on a.target_type = 'payment' and pp.id = a.target_id
+  left join capital_calls pc on pc.id = pp.capital_call_id
+  left join commitments pm on pm.id = pc.commitment_id
+  left join funds pf on pf.id = pm.fund_id
   where a.org_id = ${orgId}
 `;
 
@@ -84,6 +92,7 @@ export async function approve(orgId: string, approverId: string, approvalId: str
     const a = await lockPending(tx, orgId, approverId, approvalId);
     let effect: Record<string, unknown> = {};
     if (a.target_type === "selection") effect = await applySelectionApproval(tx, orgId, approverId, a.target_id);
+    else if (a.target_type === "payment") effect = await applyPaymentDecision(tx, a.target_id, "approved"); // 송금 대기 (BR-PAY-01)
     else throw new AppError(422, "NOT_IMPLEMENTED", "이 결재 대상은 아직 지원하지 않습니다");
     await tx`
       update approvals set status = 'approved', approver_id = ${approverId}, decided_at = now(), decision_comment = ${comment}
@@ -99,7 +108,8 @@ export async function approve(orgId: string, approverId: string, approvalId: str
 export async function reject(orgId: string, approverId: string, approvalId: string, comment: string | null) {
   if (!comment?.trim()) throw new AppError(400, "COMMENT_REQUIRED", "반려 사유를 입력하세요", "BR-APR-06", { fields: { decision_comment: "반려 사유를 입력하세요" } });
   await sql.begin(async (tx) => {
-    await lockPending(tx, orgId, approverId, approvalId);
+    const a = await lockPending(tx, orgId, approverId, approvalId);
+    if (a.target_type === "payment") await applyPaymentDecision(tx, a.target_id, "rejected"); // 반려된 납입은 끝. 고쳐서 새로 기안
     await tx`
       update approvals set status = 'rejected', approver_id = ${approverId}, decided_at = now(), decision_comment = ${comment}
       where id = ${approvalId}

@@ -24,3 +24,15 @@ export async function reconcile(tx: typeof Sql, orgId: string, commitmentId: str
   `;
   return { entry_type: entryType, our_amount, gp_amount, recon_status: status };
 }
+
+// 지금 이어지고 있는 불일치가 처음 생긴 시각 (BR-REC-04 "불일치가 생긴 지 7일"). 불일치 중에 숫자가 또 바뀌어도 처음 시각을 쓴다
+// 일치·확인 완료 뒤에 다시 생긴 불일치는 그때부터 센다. 지금 불일치가 아니면 null
+export async function mismatchSince(db: typeof Sql, commitmentId: string, entryType: EntryType): Promise<Date | null> {
+  const [r] = await db<{ since: Date | null }[]>`
+    select min(checked_at) as since from reconciliations
+    where commitment_id = ${commitmentId} and entry_type = ${entryType} and recon_status = 'mismatched'
+      and checked_at > coalesce((select max(checked_at) from reconciliations
+                                 where commitment_id = ${commitmentId} and entry_type = ${entryType} and recon_status <> 'mismatched'), '-infinity')
+  `;
+  return r?.since ?? null;
+}

@@ -2,7 +2,7 @@ import { sql } from "@/lib/db";
 import { AppError, assertUuid, notFound } from "@/lib/api/errors";
 import { formatKRW } from "@/lib/format";
 import type { ReconStatus } from "@/lib/labels";
-import { reconcile, type EntryType } from "@/lib/services/reconciliation";
+import { mismatchSince, reconcile, type EntryType } from "@/lib/services/reconciliation";
 import { getCommitment } from "@/lib/services/commitments";
 import type { CommitmentAdjustInput } from "@/lib/schemas/commitments";
 
@@ -34,6 +34,7 @@ export type ReconCurrent = {
   recon_status: ReconStatus;
   resolution_memo: string | null;
   waiting: boolean; // 불일치가 생긴 지 7일 안 = 확인 대기 (BR-REC-04)
+  mismatched_since: Date | null; // 지금 이어지는 불일치가 처음 생긴 시각
 };
 export type LedgerTotal = { entry_type: EntryType; our_amount: number; gp_amount: number | null; recon: ReconCurrent | null };
 export type LedgerView = {
@@ -79,6 +80,8 @@ export async function getLedger(orgId: string, commitmentId: string): Promise<Le
         from v_recon_current where org_id = ${orgId} and commitment_id = ${commitmentId}
       `
     : [];
+  const since = new Map<EntryType, Date | null>();
+  for (const r of recon) if (r.recon_status === "mismatched") since.set(r.entry_type, await mismatchSince(sql, commitmentId, r.entry_type));
   const sum = (rows: { entry_type: string; amount: number }[], t: EntryType) => rows.filter((r) => r.entry_type === t).reduce((s, r) => s + Number(r.amount), 0);
 
   return {
@@ -95,7 +98,8 @@ export async function getLedger(orgId: string, commitmentId: string): Promise<Le
               ...r,
               our_amount: Number(r.our_amount),
               gp_amount: Number(r.gp_amount),
-              waiting: r.recon_status === "mismatched" && Date.now() - new Date(r.checked_at).getTime() < WAITING_DAYS * 86_400_000,
+              mismatched_since: since.get(t) ?? null,
+              waiting: r.recon_status === "mismatched" && Date.now() - new Date(since.get(t) ?? r.checked_at).getTime() < WAITING_DAYS * 86_400_000,
             }
           : null,
       };

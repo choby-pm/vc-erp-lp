@@ -105,7 +105,8 @@ export async function createManualCall(orgId: string, userId: string, commitment
   return getCapitalCall(orgId, id);
 }
 
-// 수기 캐피탈콜 취소: 송금한 납입이 있으면 불가. 결재 대기·송금 대기 납입은 함께 취소, 걸린 결재도 반려 처리 (BR-CALL-04)
+// 수기 캐피탈콜 취소: 송금한 납입이 있으면 불가. 송금 대기 납입은 함께 취소 (BR-CALL-04).
+// 결재 대기 납입이 있으면 불가 — 결재권자가 먼저 반려한다 (기안 취소 없음 BR-APR-08, L31)
 export async function cancelManualCall(orgId: string, callId: string) {
   await sql.begin(async (tx) => {
     const t = tx as unknown as Db;
@@ -114,15 +115,9 @@ export async function cancelManualCall(orgId: string, callId: string) {
     if (c.data_source === "gp_api") throw new AppError(409, "GP_MANAGED_FIELD", "연동 캐피탈콜은 GP에서만 취소할 수 있습니다", "BR-CALL-04");
     if (c.cancelled_at) throw new AppError(409, "INVALID_STATE", "이미 취소된 캐피탈콜입니다", "BR-CALL-04");
     if (c.paid_amount > 0) throw new AppError(409, "CALL_HAS_PAYMENTS", "이미 송금한 납입이 있어 취소할 수 없습니다. 송금 기록을 먼저 정정하세요", "BR-CALL-04");
-    const open = await tx<{ id: string }[]>`
-      update payments set status = 'cancelled' where capital_call_id = ${callId} and status in ('requested', 'approved') returning id
-    `;
-    if (open.length) {
-      await tx`
-        update approvals set status = 'rejected', decided_at = now(), decision_comment = '캐피탈콜 취소로 자동 반려'
-        where target_type = 'payment' and target_id = any(${open.map((p) => p.id)}) and status = 'pending'
-      `;
-    }
+    const [requested] = await tx`select 1 from payments where capital_call_id = ${callId} and status = 'requested'`;
+    if (requested) throw new AppError(409, "APPROVAL_PENDING", "결재 대기 중인 납입이 있어 취소할 수 없습니다. 결재권자가 먼저 반려하세요", "BR-APR-03");
+    await tx`update payments set status = 'cancelled' where capital_call_id = ${callId} and status = 'approved'`;
     await tx`update capital_calls set cancelled_at = now() where id = ${callId}`;
   });
   return getCapitalCall(orgId, callId);

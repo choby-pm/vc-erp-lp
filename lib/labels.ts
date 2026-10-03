@@ -172,3 +172,19 @@ export const CALL_PAYMENT_STATUS_STYLE: Record<CallPaymentStatus, string> = {
 };
 // GP가 본 우리 납입 상태 (🔗 GP v_capital_call_item_status.payment_status)
 export const GP_PAYMENT_STATUS_LABEL: Record<string, string> = { pending: "미납", partial: "일부 납입", paid: "완납", overdue: "기한 경과" };
+
+// 납입 상태 (R4-2, BR-PAY-01)
+export const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  requested: "결재 대기",
+  approved: "송금 대기",
+  paid: "송금 완료",
+  rejected: "반려",
+  cancelled: "취소",
+};
+export const PAYMENT_STATUS_STYLE: Record<string, string> = {
+  requested: "bg-violet-100 text-violet-700",
+  approved: "bg-sky-100 text-sky-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-rose-100 text-rose-700",
+  cancelled: "bg-slate-200 text-slate-500",
+};

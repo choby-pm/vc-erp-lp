@@ -144,7 +144,8 @@ LP ERP에 더하는 것:
 | POST 🔄 | `/capital-calls/{call_id}/cancel` | 수기 취소 | BR-CALL-04 |
 | POST ✍💰 | `/capital-calls/{call_id}/payments` | 납입 만들기 + 결재 기안 `{ "amount", "planned_date", "request_comment" }` | BR-PAY-02, BR-APR-01 |
 | POST 🔄💰 | `/payments/{payment_id}/mark-paid` | 송금 완료 기록 `{ "paid_date", "bank_reference" }` → 장부 + 대사 (4-2) | BR-PAY-03, 04 |
-| POST 🔄💰 | `/payments/{payment_id}/cancel` | 결재 전·송금 전 취소, 또는 송금 기록 정정(원래 날짜 취소 행) | BR-PAY-05 |
+| GET | `/capital-calls/{call_id}/payments` | 이 캐피탈콜의 납입 (분할 납입 포함) | L9 |
+| POST 🔄💰 | `/payments/{payment_id}/cancel` | 송금 전 취소, 또는 송금 기록 정정(원래 날짜 취소 행) `{ reason }`. 결재 대기는 `409 APPROVAL_PENDING` (결재권자가 반려, L31) | BR-PAY-05 |
 | GET 👁 | `/cash-plan?from=&months=12` | 자금 계획: 월별 예상 납입액 (출자 건별 남은 약정 ÷ 남은 투자 기간 월수) ⚠️ | 01 단계 5 |
 
 ### 3-9. 대사

@@ -143,7 +143,7 @@ async function upsertFund(orgId: string, gpId: string, gpFundId: string, src: Fu
 }
 
 // 내 GP 원장을 사본으로 쌓는다 (추가만, 같은 GP 행은 한 번만). 사본은 출자 건에 붙으므로 출자 건이 없으면 건너뛴다.
-// 출자 건이 생길 때(선정 결재·가져온 출자 건) 다시 읽는다. 대사는 결성 확인이 끝난 출자 건의 약정만 (R4·R6에서 납입·분배)
+// 출자 건이 생길 때(선정 결재·가져온 출자 건) 다시 읽는다. 대사는 결성 확인이 끝난 출자 건의 약정·납입 (분배는 R6)
 export async function syncLedger(orgId: string, gpId: string, gpFundId: string, fundId: string, actor?: GpActor): Promise<LedgerSyncResult> {
   const [commitment] = await sql<{ id: string; status: string }[]>`select id, status from commitments where org_id = ${orgId} and fund_id = ${fundId}`;
   if (!commitment) return { inserted: 0, skipped: "no_commitment" };
@@ -166,8 +166,9 @@ export async function syncLedger(orgId: string, gpId: string, gpFundId: string, 
         changed.add(e.entry_type);
       }
     }
-    if (changed.has("commitment") && (commitment.status === "active" || commitment.status === "closed")) {
-      await reconcile(t, orgId, commitment.id, "commitment");
+    // 대사: 결성 확인이 끝난 출자 건의 약정·납입 (BR-REC-01). 분배는 R6
+    if (commitment.status === "active" || commitment.status === "closed") {
+      for (const type of ["commitment", "contribution"] as const) if (changed.has(type)) await reconcile(t, orgId, commitment.id, type);
     }
     return { inserted };
   });

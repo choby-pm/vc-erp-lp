@@ -4,7 +4,7 @@ import { CALL_PAYMENT_STATUS_LABEL, CALL_PAYMENT_STATUS_STYLE, GP_PAYMENT_STATUS
 import type { CapitalCallItem } from "@/lib/services/capital-calls";
 import { CancelCallButton } from "@/components/capital-call-actions";
 
-// 캐피탈콜 표 (R4-1). 전체 목록과 출자 건 상세에서 같이 쓴다
+// 캐피탈콜 표 (R4-1). 회차를 누르면 캐피탈콜 상세(납입 기안·송금 기록, R4-2). 전체 목록과 출자 건 상세에서 같이 쓴다
 // · 우리 쪽 납입 상태(계산값)와 GP가 본 납입 상태를 나란히 → "우리는 보냈는데 GP는 미납"이 보인다
 export default function CapitalCallTable({ calls, showFund, canCancel }: { calls: CapitalCallItem[]; showFund: boolean; canCancel: boolean }) {
   return (
@@ -38,7 +38,9 @@ export default function CapitalCallTable({ calls, showFund, canCancel }: { calls
                   </td>
                 )}
                 <td className="whitespace-nowrap px-4 py-3 text-slate-800">
-                  {c.call_no}회{c.is_initial ? " (최초)" : ""}
+                  <Link href={`/capital-calls/${c.id}`} className="font-medium hover:text-emerald-700">
+                    {c.call_no}회{c.is_initial ? " (최초)" : ""}
+                  </Link>
                   <span className="block text-xs text-slate-400">{c.data_source === "gp_api" ? "GP 연동" : "수기"}</span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-slate-700">

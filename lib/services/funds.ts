@@ -170,3 +170,35 @@ export async function changeFundStatus(orgId: string, fundId: string, input: Fun
   `;
   return getFund(orgId, fundId);
 }
+
+// 핵심 운용 인력 변경 확인 (R5-4, L37). 담당자가 바뀐 내용을 봤다고 표시하면 주의 목록에서 빠진다
+export async function reviewKeyPersonChange(orgId: string, userId: string, fundId: string) {
+  assertUuid(fundId, "조합을");
+  const [row] = await sql`
+    update funds set key_person_reviewed_at = now(), key_person_reviewed_by = ${userId}
+    where id = ${fundId} and org_id = ${orgId} and key_person_changed_at is not null and key_person_reviewed_at is null
+    returning id
+  `;
+  if (!row) {
+    const [f] = await sql`select 1 from funds where id = ${fundId} and org_id = ${orgId}`;
+    if (!f) throw notFound("조합을");
+    throw new AppError(409, "INVALID_STATE", "확인할 핵심 운용 인력 변경이 없습니다", "L37");
+  }
+  return getFund(orgId, fundId);
+}
+
+export type KeyPersonInfo = {
+  gp_key_persons: { name: string; position: string | null; role: string }[] | null;
+  gp_key_persons_prev: { name: string; position: string | null; role: string }[] | null;
+  key_person_changed_at: Date | null;
+  key_person_reviewed_at: Date | null;
+  reviewed_by_name: string | null;
+};
+export async function getKeyPersons(orgId: string, fundId: string): Promise<KeyPersonInfo | null> {
+  const [k] = await sql<KeyPersonInfo[]>`
+    select f.gp_key_persons, f.gp_key_persons_prev, f.key_person_changed_at, f.key_person_reviewed_at, u.name as reviewed_by_name
+    from funds f left join users u on u.id = f.key_person_reviewed_by where f.id = ${fundId} and f.org_id = ${orgId}
+  `;
+  return k ?? null;
+}
+

@@ -6,7 +6,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
 import { DATA_SOURCE_LABEL, FUND_STATUSES, FUND_STATUS_LABEL, FUND_TYPE_LABEL, STRATEGY_LABEL } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
-import { getFund } from "@/lib/services/funds";
+import { getFund, getKeyPersons } from "@/lib/services/funds";
+import KeyPersonReview from "@/components/key-person-review";
 import { listNotices } from "@/lib/services/notices";
 import { listReports } from "@/lib/services/reports";
 import ReportTable from "@/components/report-table";
@@ -26,6 +27,10 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
   const notices = (await listNotices(me.org_id, { fund_id: fund.id })).slice(0, 5);
   const reports = await listReports(me.org_id, { fund_id: fund.id });
   const meetings = await listMeetings(me.org_id, { fund_id: fund.id });
+  const kp = fund.data_source === "gp_api" ? await getKeyPersons(me.org_id, fund.id) : null;
+  const ROLE: Record<string, string> = { lead: "대표", key: "핵심" };
+  const people = (l: { name: string; position: string | null; role: string }[] | null) =>
+    (l ?? []).map((m) => `${m.name}${m.position ? ` ${m.position}` : ""} (${ROLE[m.role] ?? m.role})`).join(", ") || "없음";
   const [activeCommitment] = await sql`select 1 from commitments where fund_id = ${fund.id} and org_id = ${me.org_id} and status in ('active', 'closed')`;
   const isOfficer = me.role === "admin" || me.role === "officer";
   const canWrite = isOfficer && fund.data_source === "manual";
@@ -90,6 +95,25 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
           </p>
           {isOfficer && <ResyncButton fundId={fund.id} />}
         </div>
+      )}
+
+      {kp?.gp_key_persons && (
+        <section className={`rounded-xl border px-4 py-3 text-sm ${kp.key_person_changed_at && !kp.key_person_reviewed_at ? "border-rose-200 bg-rose-50 text-rose-800" : "border-slate-200 bg-white text-slate-700"}`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p>
+                <b>핵심 운용 인력 (GP)</b> · {people(kp.gp_key_persons)}
+              </p>
+              {kp.key_person_changed_at && (
+                <p className="mt-1 text-xs">
+                  {formatDateTime(kp.key_person_changed_at)} 변경 감지 · 이전: {people(kp.gp_key_persons_prev)}
+                  {kp.key_person_reviewed_at && ` · 확인 ${kp.reviewed_by_name} ${formatDateTime(kp.key_person_reviewed_at)}`}
+                </p>
+              )}
+            </div>
+            {isOfficer && kp.key_person_changed_at && !kp.key_person_reviewed_at && <KeyPersonReview fundId={fund.id} />}
+          </div>
+        </section>
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white">

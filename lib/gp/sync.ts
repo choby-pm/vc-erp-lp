@@ -43,14 +43,15 @@ type GpFundCore = {
   term_years: number;
   investment_period_years: number;
 };
-type GpFundDetail = { fund: GpFundCore & { total_commitment_amount: number }; terms: GpTerms; my: { commitment_amount: number } };
+type GpManager = { name: string; position: string | null; role: "lead" | "key" | "general" };
+type GpFundDetail = { fund: GpFundCore & { total_commitment_amount: number }; terms: GpTerms; my: { commitment_amount: number }; managers?: GpManager[] };
 type GpProposal = {
   id: string;
   status: "proposed" | "reviewing" | "committed" | "declined";
   proposed_amount: number | null;
   proposed_date: string;
   last_sent_at: string;
-  fund: GpFundCore & { terms: GpTerms };
+  fund: GpFundCore & { terms: GpTerms; managers?: GpManager[] };
 };
 type GpLedgerEntry = { id: string; entry_type: EntryType; amount: number; entry_date: string; source: Record<string, unknown>; reversal_of_id: string | null };
 
@@ -80,7 +81,7 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
   const [existing] = await sql<{ id: string }[]>`select id from funds where org_id = ${orgId} and gp_fund_id = ${gpFundId}`;
   if (!existing && !opts.create) return { fund_id: null, source: null };
 
-  let src: { core: GpFundCore; terms: GpTerms; fundSize: number | null; source: "member" | "proposal"; myCommitment?: number } | null = null;
+  let src: (FundSource & { source: "member" | "proposal"; myCommitment?: number }) | null = null;
   try {
     const d = await gp.get<GpFundDetail>(`/funds/${gpFundId}`);
     src = {
@@ -89,12 +90,13 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
       fundSize: d.fund.total_commitment_amount > 0 ? d.fund.total_commitment_amount : null,
       source: "member",
       myCommitment: Number(d.my?.commitment_amount ?? 0),
+      managers: d.managers,
     };
   } catch (err) {
     // 403 = 아직 조합원이 아님 (🔵 조합 단위 데이터는 조합원만). 제안 목록에서 찾는다
     if (!(err instanceof AppError && err.code === "GP_REJECTED" && err.details?.gp_status === 403)) throw err;
     const p = (await gp.get<GpProposal[]>("/proposals")).find((x) => x.fund.id === gpFundId);
-    if (p) src = { core: p.fund, terms: p.fund.terms, fundSize: null, source: "proposal" };
+    if (p) src = { core: p.fund, terms: p.fund.terms, fundSize: null, source: "proposal", managers: p.fund.managers };
   }
   if (!src) return { fund_id: existing?.id ?? null, source: null };
 
@@ -128,7 +130,7 @@ export async function syncCalls(orgId: string, gpId: string, gpFundId: string, f
   return upsertGpCalls(orgId, commitment.id, await gp.get<GpCapitalCall[]>(`/funds/${gpFundId}/capital-calls`));
 }
 
-type FundSource = { core: GpFundCore; terms: GpTerms; fundSize: number | null };
+type FundSource = { core: GpFundCore; terms: GpTerms; fundSize: number | null; managers?: GpManager[] };
 
 // GP 조합 정보를 우리 조합 행에 쓴다. 분야(strategy)는 처음 만들 때만 '기타'
 async function upsertFund(orgId: string, gpId: string, gpFundId: string, src: FundSource) {
@@ -153,7 +155,29 @@ async function upsertFund(orgId: string, gpId: string, gpFundId: string, src: Fu
     on conflict (org_id, gp_fund_id) do update set ${sql({ ...values, last_synced_at: new Date() })}
     returning id
   `;
+  if (src.managers) await trackKeyPersons(fund.id, src.managers);
   return fund.id;
+}
+
+// 핵심 운용 인력 변경 감지 (R5-4, L37): 대표·핵심(lead·key)만 비교한다. 처음 받을 때는 변경으로 보지 않는다
+async function trackKeyPersons(fundId: string, managers: GpManager[]) {
+  const key = managers
+    .filter((m) => m.role === "lead" || m.role === "key")
+    .map((m) => ({ name: m.name, position: m.position, role: m.role }))
+    .sort((a, b) => (a.role === b.role ? a.name.localeCompare(b.name) : a.role === "lead" ? -1 : 1));
+  const [f] = await sql<{ gp_key_persons: GpManager[] | null }[]>`select gp_key_persons from funds where id = ${fundId}`;
+  const same = (x: GpManager[] | null) => x !== null && JSON.stringify(x.map((m) => [m.role, m.name])) === JSON.stringify(key.map((m) => [m.role, m.name]));
+  if (f.gp_key_persons === null) {
+    await sql`update funds set gp_key_persons = ${sql.json(key as never)} where id = ${fundId}`;
+  } else if (!same(f.gp_key_persons)) {
+    await sql`
+      update funds set gp_key_persons_prev = gp_key_persons, gp_key_persons = ${sql.json(key as never)},
+        key_person_changed_at = now(), key_person_reviewed_at = null, key_person_reviewed_by = null
+      where id = ${fundId}
+    `;
+  } else {
+    await sql`update funds set gp_key_persons = ${sql.json(key as never)} where id = ${fundId}`; // 직위 등 표시 정보만 갱신
+  }
 }
 
 // 내 GP 원장을 사본으로 쌓는다 (추가만, 같은 GP 행은 한 번만). 사본은 출자 건에 붙으므로 출자 건이 없으면 건너뛴다.

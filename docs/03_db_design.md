@@ -407,6 +407,7 @@ LP ERP에 더하는 것:
 | `paid_date` | date | 실제 송금일. `paid` 면 필수 |
 | `bank_reference` | text | 이체 확인 번호 등 |
 | ❗ `origin` | text | `approval`(결재를 거친 납입) / `imported`(가져온 출자 건의 과거 납입, GP 원장 근거, 결재 없음, L27). `imported` 는 `paid` 로만 (마이그레이션 006) |
+| `gp_entry_id` | uuid | 가져온 납입의 근거 GP 원장 행. `(org_id, gp_entry_id)` ✨ 같은 행을 두 번 옮기지 않는다. 보통 납입은 비움 (L32, 마이그레이션 007) |
 
 > **설계 의도**: 결재와 송금을 나눈다. 승인됐다고 돈이 나간 게 아니다.
 > `paid` 가 되는 순간 같은 트랜잭션으로 장부에 `contribution` 행을 추가하고 대사를 다시 한다.

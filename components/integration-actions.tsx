@@ -78,8 +78,12 @@ export function ResyncButton({ fundId }: { fundId: string }) {
     setPending(false);
     if (!res.ok) return setMessage(body.error?.message ?? "맞추지 못했습니다");
     const ledger = body.data?.ledger as { inserted: number; skipped?: string } | undefined;
+    const calls = body.data?.calls as { created?: number } | undefined;
+    const past = body.data?.past_payments as { imported: number } | undefined;
     setMessage(
-      `GP와 맞췄습니다${ledger ? (ledger.skipped ? " · 출자 건이 없어 원장 사본은 건너뜀" : ` · 원장 사본 새로 ${ledger.inserted}건`) : ""}`,
+      `GP와 맞췄습니다${ledger ? (ledger.skipped ? " · 출자 건이 없어 원장 사본은 건너뜀" : ` · 원장 사본 새로 ${ledger.inserted}건`) : ""}` +
+        (calls?.created ? ` · 캐피탈콜 새로 ${calls.created}건` : "") +
+        (past?.imported ? ` · 과거 납입 ${past.imported}건 옮김` : ""),
     );
     router.refresh();
   }

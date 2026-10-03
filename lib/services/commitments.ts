@@ -268,7 +268,8 @@ export async function ensureImportedCommitment(orgId: string, fundId: string) {
   return row?.id ?? null;
 }
 
-// 가져온 출자 건은 맞추기 처리에서 결성 확인까지 바로 한다 (BR-CMT-03). 조합이 결성됐고 GP 약정이 있을 때만
+// 가져온 출자 건은 맞추기 처리에서 결성 확인까지 바로 한다 (BR-CMT-03). 조합이 결성됐고 GP 약정이 있을 때만.
+// 약정 날짜 = GP 원장에서 약정이 생긴 날(명부 확정일). 조합 결성일보다 앞설 수 있고, 과거 납입보다 약정이 먼저 오게 한다 (L32)
 export async function autoConfirmImported(orgId: string, fundId: string) {
   return sql.begin(async (tx) => {
     const t = tx as unknown as Db;
@@ -283,7 +284,7 @@ export async function autoConfirmImported(orgId: string, fundId: string) {
     `;
     await tx`
       insert into ledger_entries (org_id, commitment_id, entry_type, amount, entry_date, source_type, source_id, memo)
-      values (${orgId}, ${m.id}, 'commitment', ${c.gp_commitment_amount}, ${c.formation_date ?? first.entry_date}, 'commitment_confirmation', ${m.id},
+      values (${orgId}, ${m.id}, 'commitment', ${c.gp_commitment_amount}, ${first.entry_date ?? c.formation_date}, 'commitment_confirmation', ${m.id},
               '가져온 출자 건 결성 확인 (GP 약정)')
     `;
     await tx`update commitments set status = 'active', confirmed_date = ${today()} where id = ${m.id}`;

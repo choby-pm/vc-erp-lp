@@ -110,7 +110,8 @@ try {
         : ` · 원장 사본 새로 ${s.result.ledger.inserted}건`
       : '';
     const imported = s.result.imported === 'confirmed' ? ' · 가져온 출자 건 결성 확인' : s.result.imported === 'created' ? ' · 가져온 출자 건 (결성 대기)' : '';
-    console.log(`• 첫 맞추기: 조합 '${s.fund}'${ledger}${imported}`);
+    const past = s.result.past_payments?.imported ? ` · 과거 납입 ${s.result.past_payments.imported}건 옮김` : '';
+    console.log(`• 첫 맞추기: 조합 '${s.fund}'${ledger}${imported}${past}`);
   }
   if (synced.length === 0) console.log('• 첫 맞추기: GP에서 조합원인 조합이 없습니다');
   const INTAKE = { created: '새로 접수', updated: '요청액 갱신', unchanged: '이미 접수됨', skipped: '건너뜀' };

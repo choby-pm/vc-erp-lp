@@ -48,6 +48,7 @@ const OUR_SOURCE_LABEL: Record<string, string> = {
   commitment_confirmation: "결성 확인",
   commitment_adjustment: "약정 변경",
   payment: "납입",
+  imported_payment: "가져온 납입",
   distribution: "분배",
 };
 const GP_SOURCE_LABEL: Record<string, string> = { formation: "명부 확정", terms_amendment: "규약 변경", capital_call: "캐피탈콜", distribution: "분배" };
@@ -61,7 +62,9 @@ export async function getLedger(orgId: string, commitmentId: string): Promise<Le
   const c = await getCommitment(orgId, commitmentId);
   const linked = c.data_source === "gp_api";
   const ours = await sql<(Omit<LedgerRow, "label"> & { source_type: string })[]>`
-    select e.id, e.entry_type, e.amount, e.entry_date, e.source_type, e.memo, e.reversal_of_id is not null as is_reversal,
+    select e.id, e.entry_type, e.amount, e.entry_date,
+           case when e.source_type = 'payment' and exists (select 1 from payments p where p.id = e.source_id and p.origin = 'imported')
+                then 'imported_payment' else e.source_type end as source_type, e.memo, e.reversal_of_id is not null as is_reversal,
            exists (select 1 from ledger_entries r where r.reversal_of_id = e.id) as reversed
     from ledger_entries e where e.org_id = ${orgId} and e.commitment_id = ${commitmentId}
     order by e.entry_date, e.created_at

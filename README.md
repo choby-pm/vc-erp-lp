@@ -5,6 +5,8 @@
 
 똑똑 PM 지원용 개인 작업물이며, 실제 서비스와 무관한 연구 목적 프로젝트다.
 
+- **제출용 요약 · 둘러보기 순서: [docs/00_summary.md](docs/00_summary.md)**
+- 배포(데모): <https://vc-erp-lp.vercel.app> · 연결된 GP <https://vc-erp-gp.vercel.app> — 첫 화면 "데모로 둘러보기", 매일 03:00 KST 초기화
 - 기획 문서: [docs/README.md](docs/README.md)
 ## 실행 방법
 
@@ -12,7 +14,10 @@
 npm install
 npm run db:migrate   # DB 테이블 만들기 (db/migrations)
 npm run db:seed      # 데모 기관 2곳 × 역할 3개 계정 → demo-accounts.md
-npm run dev          # http://localhost:3200 (GP는 3100)
+npm run gp:link      # GP 연동 설정 (GP 쪽 npm run db:seed-lp-demo 먼저)
+npm run db:seed-scenario   # 전 단계 데모 시나리오 (있으면 건너뜀)
+npm run dev          # http://localhost:3200 (GP는 3000)
+npm run check:numbers      # 숫자 일치 점검 (-- --demo 는 배포 데모 DB)
 ```
 
 `.env.local` 에 `DATABASE_URL`, `DATABASE_URL_UNPOOLED` 가 필요하다 (`vercel env pull`).

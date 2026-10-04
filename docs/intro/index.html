@@ -112,6 +112,24 @@ section.block { padding-block: 40px; border-top: 1px solid var(--rule); display:
 .wire .dir.to-lp { color: var(--lp); }
 .wire .dir.to-gp { color: var(--gp); }
 
+/* QA */
+.qa { overflow-x: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; }
+.qa table { width: 100%; min-width: 600px; border-collapse: collapse; font-size: var(--step-0); font-variant-numeric: tabular-nums; }
+.qa th, .qa td { padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.qa tr:last-child td { border-bottom: 0; }
+.qa th { font-size: 0.75rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+.qa td.n { text-align: right; width: 4.5rem; }
+.qa td.ok { font-family: var(--font-mono); white-space: nowrap; width: 6rem; }
+.qa td.ok.pass { color: var(--lp); }
+.qa td.ok.fail { color: var(--warn); }
+.qa .mix { display: flex; height: 8px; min-width: 120px; border-radius: 4px; overflow: hidden; background: var(--rule); }
+.qa .mix i { display: block; }
+.qa .mix .g { background: var(--gp); }
+.qa .mix .l { background: var(--lp); }
+.qa .mix .c { background: var(--muted); }
+.qa-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.8125rem; color: var(--muted); }
+.qa-key span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--k); }
+
 /* 둘러보기 */
 .tour { display: grid; gap: 28px; counter-reset: step; }
 .step { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px; align-items: start; }
@@ -217,7 +235,7 @@ dialog.zoom button {
       <div class="fact"><b class="num">R12 · R8</b><span>마지막 릴리스 (GP R0~R12 · LP R0~R8)</span></div>
       <div class="fact"><b class="num">37 · 36</b><span>DB 테이블 (GP · LP), SQL 직접 작성</span></div>
       <div class="fact"><b class="num">98 · 100</b><span>API 라우트 (GP · LP, 서로 부르는 API 포함)</span></div>
-      <div class="fact"><b class="num">45/45</b><span>업무 순서 QA (연동 21개) · 숫자 일치 85개, 배포에서 통과</span></div>
+      <!-- QA-FACT (npm run qa:mixed-report 가 고친다) --><div class="fact"><b class="num">86/86</b><span>생애주기 QA (GP 41 · LP·연동 45) · 숫자 일치 89개, 배포에서 통과</span></div><!-- /QA-FACT -->
     </div>
   </header>
 
@@ -379,6 +397,39 @@ dialog.zoom button {
     </div>
   </section>
 
+  <!-- QA-SECTION (npm run qa:mixed-report 가 고친다) --><section class="block" aria-labelledby="qa-h">
+    <header>
+      <p class="eyebrow">검증</p>
+      <h2 id="qa-h">조합 생애주기 순서로 돌린 QA</h2>
+      <p>배포된 두 사이트에 실제로 요청을 보내, GP가 조합을 기획해 청산할 때까지의 일과 LP가 그것을 받아 심사 · 결재 · 대사하는 일을 단계마다 확인합니다. 막혀야 할 요청이 막히는지도 함께 봅니다. 매일 01:00(KST)에 자동으로 돌고, 끝나면 데모를 처음 상태로 되돌립니다.</p>
+    </header>
+    <div class="facts">
+      <div class="fact"><b class="num">86/86</b><span>2026-10-04 실행 결과</span></div>
+      <div class="fact"><b class="num">41 · 45</b><span>GP 단독 · LP와 연동</span></div>
+      <div class="fact"><b class="num">21</b><span>GP ↔ LP 사이에 도착하는지</span></div>
+      <div class="fact"><b class="num">24</b><span>막혀야 할 것을 막는지</span></div>
+    </div>
+    <div class="qa">
+      <table>
+        <thead><tr><th>생애주기 단계</th><th>항목 구성</th><th>항목</th><th>연동</th><th>차단</th><th>결과</th></tr></thead>
+        <tbody>
+          <tr><td>1. 출자 계획 · 공고</td><td><div class="mix" role="img" aria-label="GP 0 · LP 3"><i class="l" style="flex: 3"></i></div></td><td class="n">3</td><td class="n">1</td><td class="n">0</td><td class="ok pass">✓ 3/3</td></tr>
+          <tr><td>2. 조합 기획</td><td><div class="mix" role="img" aria-label="GP 4 · LP 0"><i class="g" style="flex: 4"></i></div></td><td class="n">4</td><td class="n">0</td><td class="n">1</td><td class="ok pass">✓ 4/4</td></tr>
+          <tr><td>3. 모집 · 심사 · 선정</td><td><div class="mix" role="img" aria-label="GP 8 · LP 8"><i class="g" style="flex: 8"></i><i class="l" style="flex: 8"></i></div></td><td class="n">16</td><td class="n">7</td><td class="n">6</td><td class="ok pass">✓ 16/16</td></tr>
+          <tr><td>4. 결성</td><td><div class="mix" role="img" aria-label="GP 6 · LP 3"><i class="g" style="flex: 6"></i><i class="l" style="flex: 3"></i></div></td><td class="n">9</td><td class="n">1</td><td class="n">1</td><td class="ok pass">✓ 9/9</td></tr>
+          <tr><td>5. 납입 · 투자 운용</td><td><div class="mix" role="img" aria-label="GP 9 · LP 6"><i class="g" style="flex: 9"></i><i class="l" style="flex: 6"></i></div></td><td class="n">15</td><td class="n">3</td><td class="n">5</td><td class="ok pass">✓ 15/15</td></tr>
+          <tr><td>6. 보고 · 총회 · 통지</td><td><div class="mix" role="img" aria-label="GP 6 · LP 3"><i class="g" style="flex: 6"></i><i class="l" style="flex: 3"></i></div></td><td class="n">9</td><td class="n">4</td><td class="n">1</td><td class="ok pass">✓ 9/9</td></tr>
+          <tr><td>7. 재무 · 회계</td><td><div class="mix" role="img" aria-label="GP 5 · LP 0"><i class="g" style="flex: 5"></i></div></td><td class="n">5</td><td class="n">0</td><td class="n">2</td><td class="ok pass">✓ 5/5</td></tr>
+          <tr><td>8. 회수 · 분배</td><td><div class="mix" role="img" aria-label="GP 3 · LP 4"><i class="g" style="flex: 3"></i><i class="l" style="flex: 4"></i></div></td><td class="n">7</td><td class="n">3</td><td class="n">1</td><td class="ok pass">✓ 7/7</td></tr>
+          <tr><td>9. 성과 분석</td><td><div class="mix" role="img" aria-label="GP 0 · LP 2"><i class="l" style="flex: 2"></i></div></td><td class="n">2</td><td class="n">0</td><td class="n">0</td><td class="ok pass">✓ 2/2</td></tr>
+          <tr><td>10. 해산 · 청산</td><td><div class="mix" role="img" aria-label="GP 2 · LP 3"><i class="g" style="flex: 2"></i><i class="l" style="flex: 3"></i></div></td><td class="n">5</td><td class="n">0</td><td class="n">3</td><td class="ok pass">✓ 5/5</td></tr>
+          <tr><td>11. 공통 (권한 · 보안 · 화면)</td><td><div class="mix" role="img" aria-label="GP 5 · LP 5 · 공통 1"><i class="g" style="flex: 5"></i><i class="l" style="flex: 5"></i><i class="c" style="flex: 1"></i></div></td><td class="n">11</td><td class="n">2</td><td class="n">4</td><td class="ok pass">✓ 11/11</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="qa-key"><span style="--k: var(--gp)">GP 화면에서 확인</span><span style="--k: var(--lp)">LP 화면에서 확인</span><span style="--k: var(--muted)">공통</span><span>항목마다 서비스 › 메뉴 › 화면 › 기능으로 정리한 결과지(MD · 엑셀)가 저장소에 날짜별로 쌓입니다</span></p>
+  </section><!-- /QA-SECTION -->
+
   <section class="block" aria-labelledby="pr-h">
     <header>
       <p class="eyebrow">설계</p>
@@ -389,7 +440,7 @@ dialog.zoom button {
       <div><b>결재 없이 돈이 나가지 않음</b><span>결재 때 숫자를 스냅샷으로 남기고, 승인하는 순간 예산 행을 잠근 채 다시 검사합니다.</span></div>
       <div><b>세 겹의 방어선</b><span>화면 검사 → 서버 업무 규칙(오류 코드와 규칙 번호) → DB 제약과 트리거.</span></div>
       <div><b>중복 방지</b><span>돈이 걸린 요청은 Idempotency-Key로, 받은 웹훅은 이벤트 ID로 한 번만 처리합니다.</span></div>
-      <div><b>숫자는 한 곳에서</b><span>성과·예산·자금 계획은 저장하지 않고 계산하며, 점검 스크립트가 화면끼리 85개 항목을 비교합니다.</span></div>
+      <div><b>숫자는 한 곳에서</b><span>성과·예산·자금 계획은 저장하지 않고 계산하며, 점검 스크립트가 화면끼리 89개 항목을 비교합니다.</span></div>
       <div><b>연동은 끊겨도 됨</b><span>GP가 응답하지 않아도 LP 업무는 저장되고, 하루 1회 주기 작업과 수동 버튼이 나중에 맞춥니다.</span></div>
     </div>
     <div class="assume">

@@ -1,0 +1,106 @@
+# QA 자동 실행 (L57) — 매일 01:00 KST 배포 GP · LP 데모에서 QA를 돌리고 결과지를 qa-reports 브랜치에 쌓는다
+#
+# 순서: 데모 복원 → LP · 연동 QA(45) → 데모 복원 → GP 단독 QA(41) → 데모 복원 → 결과지 3종 → qa-reports 브랜치에 커밋
+# · 03:00 데모 초기화(Vercel 주기 작업)보다 앞서 끝나게 01:00. 지연돼도 끝에 복원하므로 데모는 처음 상태로 남는다
+# · 하나라도 실패하면 실행이 실패로 표시되고 GitHub가 메일을 보낸다 (결과지는 실패해도 남긴다)
+# · 비밀값: LP_QA_ENV · GP_QA_ENV = 각 .env.local 에서 데모 DB에 필요한 값만 (NEON_API_KEY · NEON_PROJECT_ID · DEMO_BRANCH_ID · DEMO_SEED_BRANCH_ID · PGDATABASE · PGUSER)
+# · GP 저장소는 공개라 토큰 없이 받는다. 손으로 돌리려면 Actions › QA › Run workflow
+name: QA
+
+on:
+  schedule:
+    - cron: "0 16 * * *" # 16:00 UTC = 01:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qa-demo
+  cancel-in-progress: false
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Seoul
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: lp
+      - uses: actions/checkout@v4
+        with:
+          repository: choby-pm/vc-erp-gp
+          path: gp
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            lp/package-lock.json
+            gp/package-lock.json
+      - name: 패키지 설치
+        run: |
+          (cd lp && npm ci --ignore-scripts --no-audit --no-fund)
+          (cd gp && npm ci --ignore-scripts --no-audit --no-fund)
+      - name: 데모 DB 값
+        env:
+          LP_QA_ENV: ${{ secrets.LP_QA_ENV }}
+          GP_QA_ENV: ${{ secrets.GP_QA_ENV }}
+        run: |
+          printf '%s\n' "$LP_QA_ENV" > lp/.env.local
+          printf '%s\n' "$GP_QA_ENV" > gp/.env.local
+
+      - name: 데모 복원 (시작 상태)
+        working-directory: lp
+        run: node scripts/demo-restore.mjs
+      - name: LP · 연동 QA
+        id: lp_qa
+        continue-on-error: true
+        working-directory: lp
+        run: node scripts/qa-e2e.mjs
+      - name: 데모 복원
+        working-directory: lp
+        run: node scripts/demo-restore.mjs
+      - name: GP 단독 QA
+        id: gp_qa
+        continue-on-error: true
+        working-directory: gp
+        run: node scripts/qa-gp.mjs
+      - name: 데모 복원 (끝)
+        if: always()
+        working-directory: lp
+        run: node scripts/demo-restore.mjs
+
+      - name: 결과지
+        if: always() && steps.lp_qa.outcome != 'skipped' && steps.gp_qa.outcome != 'skipped'
+        run: |
+          (cd lp && node scripts/qa-report.mjs)
+          (cd gp && node scripts/qa-gp-report.mjs)
+          (cd lp && node scripts/qa-mixed-report.mjs)
+          sed -n '1,/^## 단계별 항목/p' lp/docs/qa-reports/*-mixed.md | sed '$d' >> "$GITHUB_STEP_SUMMARY"
+      - name: qa-reports 브랜치에 쌓기
+        if: always() && steps.lp_qa.outcome != 'skipped' && steps.gp_qa.outcome != 'skipped'
+        working-directory: lp
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin qa-reports >/dev/null; then
+            git fetch --depth 1 origin qa-reports
+            git worktree add ../out FETCH_HEAD
+            (cd ../out && git switch -c qa-reports)
+          else
+            git worktree add --orphan -b qa-reports ../out
+          fi
+          node scripts/qa-publish.mjs ../out
+          cd ../out
+          git add -A
+          git commit -q -m "QA $(date +%F): LP·연동 ${{ steps.lp_qa.outcome }}, GP ${{ steps.gp_qa.outcome }}"
+          git push -q origin qa-reports
+
+      - name: 실패 표시
+        if: steps.lp_qa.outcome == 'failure' || steps.gp_qa.outcome == 'failure'
+        run: |
+          echo "::error::QA 실패 — LP·연동 ${{ steps.lp_qa.outcome }}, GP 단독 ${{ steps.gp_qa.outcome }}. qa-reports 브랜치 결과지를 확인하세요"
+          exit 1

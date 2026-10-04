@@ -107,4 +107,47 @@ fs.writeFileSync(new URL(`${date}-mixed.csv`, dir), '﻿' + csv.join('\r\n'));
 const json = { date: `${date} (LP·GP 혼합)`, at: gpResult.at, lp: lpResult.lp, gp: gpResult.gp, passed, total: rows.length, rows };
 fs.writeFileSync(new URL(`${date}-mixed.json`, dir), JSON.stringify(json, null, 2));
 await writeXlsx(new URL(`${date}-mixed.json`, dir), new URL(`${date}-mixed.xlsx`, dir), { byStage: true });
+// ── 소개 페이지(docs/intro/index.html) QA 숫자 · 구역을 이번 결과로 고친다 (표시 사이만)
+const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const lpNumbers = lpResult.results.find((r) => r.id.startsWith('Q8-2'))?.detail.match(/(\d+)\s*개/)?.[1];
+const stageRows = order.map((f) => {
+  const g = rows.filter((r) => r.flow === f);
+  if (!g.length) return '';
+  const n = (svc) => g.filter((r) => r.service === svc).length;
+  const bar = [['g', n('GP')], ['l', n('LP')], ['c', n('공통')]].filter(([, k]) => k).map(([c, k]) => `<i class="${c}" style="flex: ${k}"></i>`).join('');
+  const ok = g.every((r) => r.ok);
+  return `          <tr><td>${esc(FLOW[f])}</td><td><div class="mix" role="img" aria-label="GP ${n('GP')} · LP ${n('LP')}${n('공통') ? ` · 공통 ${n('공통')}` : ''}">${bar}</div></td><td class="n">${g.length}</td><td class="n">${g.filter((r) => r.kind.includes('연동')).length}</td><td class="n">${g.filter((r) => r.kind.includes('차단')).length}</td><td class="ok ${ok ? 'pass' : 'fail'}">${ok ? '✓' : '✕'} ${tally(g).replace(/ /g, '')}</td></tr>`;
+}).filter(Boolean).join('\n');
+const section = `<section class="block" aria-labelledby="qa-h">
+    <header>
+      <p class="eyebrow">검증</p>
+      <h2 id="qa-h">조합 생애주기 순서로 돌린 QA</h2>
+      <p>배포된 두 사이트에 실제로 요청을 보내, GP가 조합을 기획해 청산할 때까지의 일과 LP가 그것을 받아 심사 · 결재 · 대사하는 일을 단계마다 확인합니다. 막혀야 할 요청이 막히는지도 함께 봅니다. 매일 01:00(KST)에 자동으로 돌고, 끝나면 데모를 처음 상태로 되돌립니다.</p>
+    </header>
+    <div class="facts">
+      <div class="fact"><b class="num">${passed}/${rows.length}</b><span>${kst(gpResult.at).slice(0, 10)} 실행 결과</span></div>
+      <div class="fact"><b class="num">${gpRows.length} · ${lpRows.length}</b><span>GP 단독 · LP와 연동</span></div>
+      <div class="fact"><b class="num">${rows.filter((r) => r.kind.includes('연동')).length}</b><span>GP ↔ LP 사이에 도착하는지</span></div>
+      <div class="fact"><b class="num">${rows.filter((r) => r.kind.includes('차단')).length}</b><span>막혀야 할 것을 막는지</span></div>
+    </div>
+    <div class="qa">
+      <table>
+        <thead><tr><th>생애주기 단계</th><th>항목 구성</th><th>항목</th><th>연동</th><th>차단</th><th>결과</th></tr></thead>
+        <tbody>
+${stageRows}
+        </tbody>
+      </table>
+    </div>
+    <p class="qa-key"><span style="--k: var(--gp)">GP 화면에서 확인</span><span style="--k: var(--lp)">LP 화면에서 확인</span><span style="--k: var(--muted)">공통</span><span>항목마다 서비스 › 메뉴 › 화면 › 기능으로 정리한 결과지(MD · 엑셀)가 저장소에 날짜별로 쌓입니다</span></p>
+  </section>`;
+const fact = `<div class="fact"><b class="num">${passed}/${rows.length}</b><span>생애주기 QA (GP ${gpRows.length} · LP·연동 ${lpRows.length})${lpNumbers ? ` · 숫자 일치 ${lpNumbers}개` : ''}, 배포에서 통과</span></div>`;
+const introUrl = new URL('../docs/intro/index.html', import.meta.url);
+let intro = fs.readFileSync(introUrl, 'utf8');
+const put = (tag, html) => { intro = intro.replace(new RegExp(`(<!-- ${tag} [^>]*-->)[\\s\\S]*?(<!-- /${tag} -->)`), (_, a, b) => `${a}${html}${b}`); };
+if (failed === 0) {
+  put('QA-FACT', fact);
+  put('QA-SECTION', section);
+  fs.writeFileSync(introUrl, intro);
+}
+
 console.log(`${failed === 0 ? '✔' : '✖'} ${passed}/${rows.length} (GP ${gpRows.length} + LP·연동 ${lpRows.length}) → docs/qa-reports/${date}-mixed.md · .xlsx · .csv · .json`);

@@ -50,3 +50,6 @@ demo-accounts.md
 .agents/
 .claude/
 skills-lock.json
+
+# QA 실행 결과 (npm run qa:e2e)
+.qa-result.json

@@ -138,7 +138,7 @@ ${stageRows}
         </tbody>
       </table>
     </div>
-    <p class="qa-key"><span style="--k: var(--gp)">GP 화면에서 확인</span><span style="--k: var(--lp)">LP 화면에서 확인</span><span style="--k: var(--muted)">공통</span><span>항목마다 서비스 › 메뉴 › 화면 › 기능으로 정리한 결과지(MD · 엑셀)가 저장소에 날짜별로 쌓입니다</span></p>
+    <p class="qa-key"><span style="--k: var(--gp)">GP 화면에서 확인</span><span style="--k: var(--lp)">LP 화면에서 확인</span><span style="--k: var(--muted)">공통</span><span class="note">항목마다 서비스 › 메뉴 › 화면 › 기능으로 정리한 결과지(MD · 엑셀)가 저장소에 날짜별로 쌓입니다</span></p>
   </section>`;
 const fact = `<div class="fact"><b class="num">${passed}/${rows.length}</b><span>생애주기 QA (GP ${gpRows.length} · LP·연동 ${lpRows.length})${lpNumbers ? ` · 숫자 일치 ${lpNumbers}개` : ''}, 배포에서 통과</span></div>`;
 const introUrl = new URL('../docs/intro/index.html', import.meta.url);

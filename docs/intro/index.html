@@ -128,6 +128,7 @@ section.block { padding-block: 40px; border-top: 1px solid var(--rule); display:
 .qa .mix .l { background: var(--lp); }
 .qa .mix .c { background: var(--muted); }
 .qa-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.8125rem; color: var(--muted); }
+.qa-key .note::before { display: none; }
 .qa-key span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--k); }
 
 /* 둘러보기 */
@@ -427,7 +428,7 @@ dialog.zoom button {
         </tbody>
       </table>
     </div>
-    <p class="qa-key"><span style="--k: var(--gp)">GP 화면에서 확인</span><span style="--k: var(--lp)">LP 화면에서 확인</span><span style="--k: var(--muted)">공통</span><span>항목마다 서비스 › 메뉴 › 화면 › 기능으로 정리한 결과지(MD · 엑셀)가 저장소에 날짜별로 쌓입니다</span></p>
+    <p class="qa-key"><span style="--k: var(--gp)">GP 화면에서 확인</span><span style="--k: var(--lp)">LP 화면에서 확인</span><span style="--k: var(--muted)">공통</span><span class="note">항목마다 서비스 › 메뉴 › 화면 › 기능으로 정리한 결과지(MD · 엑셀)가 저장소에 날짜별로 쌓입니다</span></p>
   </section><!-- /QA-SECTION -->
 
   <section class="block" aria-labelledby="pr-h">

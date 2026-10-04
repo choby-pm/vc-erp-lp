@@ -86,9 +86,10 @@ export async function getBoardProgram(programId: string) {
   return p;
 }
 
-// GP용: 이 연결(GP)이 어느 기관과 연동돼 있는지 함께 알려준다 → GP 화면에서 "GP ERP에서 지원" / "기관 창구로" (L51)
+// GP용: 이 연결(GP)이 어느 기관과 연동돼 있는지, 그 기관이 GP 쪽 어느 출자자인지 함께 알려준다 → GP 화면에서 "GP ERP에서 지원" / "기관 창구로" (L51)
 export async function listBoardForGp(connectionId: string, filter: BoardFilter = {}) {
-  const links = await sql<{ org_id: string }[]>`select distinct org_id from gp_lp_links where gp_connection_id = ${connectionId}`;
-  const linked = new Set(links.map((l) => l.org_id));
-  return (await load(filter)).map(({ org_id, updated_at, ...p }) => ({ ...p, org_id, updated_at, linked: linked.has(org_id) }));
+  // gp_lp_id: 그 기관이 GP 쪽에서 어느 출자자인지 — GP가 지원할 때 그 출자자 앞 제안을 만든다 (L53)
+  const links = await sql<{ org_id: string; gp_lp_id: string }[]>`select org_id, gp_lp_id from gp_lp_links where gp_connection_id = ${connectionId}`;
+  const lpOf = new Map(links.map((l) => [l.org_id, l.gp_lp_id]));
+  return (await load(filter)).map((p) => ({ ...p, linked: lpOf.has(p.org_id), gp_lp_id: lpOf.get(p.org_id) ?? null }));
 }

@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { STRATEGIES, type Strategy } from "@/lib/labels";
 import { AppError } from "@/lib/api/errors";
 import { gpClient, type GpActor } from "@/lib/gp/client";
 import { SYNC_JOB, pullConnection, type PullResult } from "@/lib/gp/inbox";
@@ -38,6 +39,7 @@ type GpFundCore = {
   id: string;
   name: string;
   fund_type: "venture" | "new_tech";
+  strategy?: Strategy; // GP 조합 분야 (GP 마이그레이션 018, D47 보완). 예전 GP는 보내지 않는다
   status: "planning" | "fundraising" | "formed" | "operating" | "dissolved" | "liquidated";
   target_amount: number;
   formation_date: string | null;
@@ -77,7 +79,7 @@ export type LedgerSyncResult = { inserted: number; skipped?: "no_commitment" };
 // 연동 조합 하나를 GP 현재 상태로 맞춘다.
 // · 조합원이면 조합 상세 API(결성액·규약 포함), 아직 조합원이 아니면(결성 전 제안 단계) 출자 제안 목록의 조합 정보로
 // · create = false 면 우리 기관에 이미 있는 조합만 갱신한다 (조합 전체 이벤트). 새 연동 조합은 첫 맞추기·조합원 가입·제안 접수 때 생긴다
-// · 분야(strategy)는 LP 쪽 분류라 GP 값이 없다. 새로 만들 때 '기타'로 두고, 이후 동기화는 건드리지 않는다
+// · 분야(strategy)는 GP 조합 분야를 받는다 (R8-2 보완). GP가 보내지 않으면 새로 만들 때 '기타', 이후에는 그대로
 export async function syncFund(orgId: string, gpId: string, gpFundId: string, opts: { create: boolean; actor?: GpActor }): Promise<FundSyncResult> {
   const gp = await gpClient(orgId, gpId, opts.actor);
   const [existing] = await sql<{ id: string }[]>`select id from funds where org_id = ${orgId} and gp_fund_id = ${gpFundId}`;
@@ -137,12 +139,14 @@ export async function syncCalls(orgId: string, gpId: string, gpFundId: string, f
 
 type FundSource = { core: GpFundCore; terms: GpTerms; fundSize: number | null; managers?: GpManager[] };
 
-// GP 조합 정보를 우리 조합 행에 쓴다. 분야(strategy)는 처음 만들 때만 '기타'
+// GP 조합 정보를 우리 조합 행에 쓴다. 분야(strategy)는 GP 값 (없으면 처음 만들 때 '기타')
 async function upsertFund(orgId: string, gpId: string, gpFundId: string, src: FundSource) {
   const { core, terms } = src;
+  const gpStrategy = core.strategy && (STRATEGIES as readonly string[]).includes(core.strategy) ? core.strategy : null;
   const values = {
     name: core.name,
     fund_type: core.fund_type,
+    ...(gpStrategy ? { strategy: gpStrategy } : {}),
     status: core.status,
     target_amount: core.target_amount,
     fund_size_amount: ["planning", "fundraising"].includes(core.status) ? null : src.fundSize,
@@ -156,7 +160,7 @@ async function upsertFund(orgId: string, gpId: string, gpFundId: string, src: Fu
     primary_purpose_min_ratio: rate(terms.primary_purpose_min_ratio),
   };
   const [fund] = await sql<{ id: string }[]>`
-    insert into funds ${sql({ ...values, org_id: orgId, gp_id: gpId, strategy: "other", data_source: "gp_api", gp_fund_id: gpFundId, last_synced_at: new Date() })}
+    insert into funds ${sql({ strategy: "other", ...values, org_id: orgId, gp_id: gpId, data_source: "gp_api", gp_fund_id: gpFundId, last_synced_at: new Date() })}
     on conflict (org_id, gp_fund_id) do update set ${sql({ ...values, last_synced_at: new Date() })}
     returning id
   `;

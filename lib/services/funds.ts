@@ -133,8 +133,9 @@ export async function updateFund(orgId: string, fundId: string, input: FundInput
 export async function updateLinkedFund(orgId: string, fundId: string, input: LinkedFundInput) {
   const fund = await getFund(orgId, fundId);
   if (fund.data_source !== "gp_api") throw new AppError(409, "INVALID_STATE", "수기 조합은 조합 수정 화면에서 고칩니다");
-  await sql`update funds set strategy = ${input.strategy} where id = ${fundId} and org_id = ${orgId}`;
-  return getFund(orgId, fundId);
+  void input;
+  // 연동 조합 분야는 이제 GP 조합 분야를 받는다 (R8-2 보완, GP 마이그레이션 018) → 여기서 바꾸지 않는다
+  throw new AppError(409, "GP_MANAGED_FIELD", "연동 조합의 분야는 GP에서 받은 값이라 여기서 바꿀 수 없습니다", "BR-COM-05");
 }
 
 const FORMED_OR_LATER: FundStatus[] = ["formed", "operating", "dissolved", "liquidated"];

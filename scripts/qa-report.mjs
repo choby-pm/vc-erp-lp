@@ -1,11 +1,12 @@
 // QA 결과지 만들기 (docs/96_qa_scenarios.md + .qa-result.json → docs/qa-reports/<날짜>.md · .csv)
 //
 //   npm run qa:e2e -- --reset   먼저 QA를 돌린다 (.qa-result.json 이 생긴다)
-//   npm run qa:report           결과지를 만든다 — MD(저장소용) · CSV(구글 시트 · 엑셀로 가져오기용, UTF-8 BOM)
+//   npm run qa:report           결과지를 만든다 — MD(저장소용) · XLSX(엑셀 · 구글 시트, 요약/항목별 탭) · CSV(UTF-8 BOM) · JSON
 //
 // 시나리오 문서의 "확인 · 기대 결과"와 실행 결과의 "통과 · 실제 값"을 ID로 맞춰 한 표로 만든다
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
+import { writeXlsx } from './qa-report-xlsx.mjs';
 
 const result = JSON.parse(fs.readFileSync(new URL('../.qa-result.json', import.meta.url), 'utf8'));
 const doc = fs.readFileSync(new URL('../docs/96_qa_scenarios.md', import.meta.url), 'utf8');
@@ -21,8 +22,9 @@ for (const line of doc.split(/\r?\n/)) {
 }
 
 const short = (cmd, cwd) => { try { return execSync(cmd, { cwd, encoding: 'utf8' }).trim(); } catch { return '-'; } };
-const lpCommit = short('git rev-parse --short HEAD');
-const gpCommit = short('git rev-parse --short HEAD', new URL('../../gp/', import.meta.url));
+// QA를 돌린 때의 버전 (예전 결과에는 없어서 지금 버전으로 대신한다)
+const lpCommit = result.lp ?? short('git rev-parse --short HEAD');
+const gpCommit = result.gp ?? short('git rev-parse --short HEAD', new URL('../../gp/', import.meta.url));
 const at = new Date(result.at);
 const kst = (d) => d.toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16);
 const date = kst(at).slice(0, 10);
@@ -77,4 +79,5 @@ for (const r of rows) csv.push([r.id, r.stage, r.kind, r.check, r.expected, r.ok
 fs.writeFileSync(new URL(`${date}.csv`, dir), '﻿' + csv.join('\r\n'));
 fs.writeFileSync(new URL(`${date}.json`, dir), JSON.stringify({ date, at: result.at, lp: lpCommit, gp: gpCommit, passed, total: rows.length, rows }, null, 2));
 
-console.log(`${failed === 0 ? '✔' : '✖'} ${passed}/${rows.length} → docs/qa-reports/${date}.md · .csv · .json`);
+await writeXlsx(new URL(`${date}.json`, dir), new URL(`${date}.xlsx`, dir));
+console.log(`${failed === 0 ? '✔' : '✖'} ${passed}/${rows.length} → docs/qa-reports/${date}.md · .xlsx · .csv · .json`);

@@ -299,7 +299,9 @@ ${raw}`).digest('hex');
 const passed = results.filter((r) => r.ok).length;
 console.log(`\n${passed === results.length ? '✔' : '✖'} ${passed}/${results.length} 통과`);
 for (const r of results.filter((x) => !x.ok)) console.log(`  ✕ ${r.id} ${r.label} — ${r.detail}`);
-fs.writeFileSync(new URL('../.qa-result.json', import.meta.url), JSON.stringify({ at: new Date().toISOString(), passed, total: results.length, results }, null, 2));
+// 실행한 코드 버전을 함께 남긴다 — 결과지는 만든 때가 아니라 QA를 돌린 때의 버전을 적는다
+const commitOf = (cwd) => { try { return execSync('git rev-parse --short HEAD', { cwd, encoding: 'utf8' }).trim(); } catch { return null; } };
+fs.writeFileSync(new URL('../.qa-result.json', import.meta.url), JSON.stringify({ at: new Date().toISOString(), lp: commitOf(new URL('../', import.meta.url)), gp: commitOf(new URL('../../gp/', import.meta.url)), passed, total: results.length, results }, null, 2));
 
 if (process.argv.includes('--reset')) {
   console.log('\n데모 되돌리기: GP → LP 짝 맞춘 갱신');

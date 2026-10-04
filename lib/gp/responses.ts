@@ -46,13 +46,22 @@ type Target = {
   planned_amount: number | null;
   gp_response_sent_at: Date | null;
   gp_response_status: GpDecision | null;
+  // 선정 조건 (R8-4, L55): 확약 응답에 함께 보낸다. 비율 상한은 선정 조건 값, 없으면 공고 부문 값
+  formation_deadline: string | null;
+  max_commitment_ratio: string | null;
+  key_person_condition: string | null;
+  min_fund_size_amount: number | null;
+  program_name: string | null;
 };
 
 async function loadTarget(orgId: string, proposalId: string) {
   const [p] = await sql<Target[]>`
     select p.id, p.org_id, p.gp_id, p.status, p.data_source, p.gp_proposal_id, p.decided_date, s.planned_amount,
-           p.gp_response_sent_at, p.gp_response_status
+           p.gp_response_sent_at, p.gp_response_status,
+           s.formation_deadline::text, coalesce(s.max_commitment_ratio, t.max_commitment_ratio)::text as max_commitment_ratio,
+           s.key_person_condition, t.min_fund_size_amount, g.name as program_name
     from proposals p left join selection_terms s on s.proposal_id = p.id
+    left join program_tracks t on t.id = p.program_track_id left join programs g on g.id = t.program_id
     where p.org_id = ${orgId} and p.id = ${proposalId}
   `;
   return p ?? null;
@@ -64,7 +73,20 @@ async function send(p: Target, actor?: GpActor): Promise<GpSync> {
 
   const body =
     decision === "committed"
-      ? { decision, loc_amount: p.planned_amount, decided_date: p.decided_date }
+      ? {
+          decision,
+          loc_amount: p.planned_amount,
+          decided_date: p.decided_date,
+          terms: p.formation_deadline
+            ? {
+                formation_deadline: p.formation_deadline,
+                max_commitment_ratio: p.max_commitment_ratio === null ? null : Number(p.max_commitment_ratio),
+                min_fund_size_amount: p.min_fund_size_amount === null ? null : Number(p.min_fund_size_amount),
+                key_person_condition: p.key_person_condition,
+                program_name: p.program_name,
+              }
+            : null,
+        }
       : decision === "declined"
         ? { decision, decided_date: p.decided_date }
         : { decision };
@@ -115,8 +137,11 @@ export type SendPendingResult = { sent: number; pending: number; rejected: numbe
 export async function sendPendingResponses(orgId: string | null, actor?: GpActor): Promise<SendPendingResult> {
   const targets = await sql<Target[]>`
     select p.id, p.org_id, p.gp_id, p.status, p.data_source, p.gp_proposal_id, p.decided_date, s.planned_amount,
-           p.gp_response_sent_at, p.gp_response_status
+           p.gp_response_sent_at, p.gp_response_status,
+           s.formation_deadline::text, coalesce(s.max_commitment_ratio, t.max_commitment_ratio)::text as max_commitment_ratio,
+           s.key_person_condition, t.min_fund_size_amount, g.name as program_name
     from proposals p left join selection_terms s on s.proposal_id = p.id
+    left join program_tracks t on t.id = p.program_track_id left join programs g on g.id = t.program_id
     where p.data_source = 'gp_api' and p.gp_response_sent_at is null and p.status not in ('received', 'withdrawn')
       and p.gp_response_error_code is distinct from 'GP_REJECTED'
       and (${orgId}::uuid is null or p.org_id = ${orgId}::uuid)

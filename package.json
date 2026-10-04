@@ -14,7 +14,8 @@
     "db:demo-refresh": "node --env-file=.env.local scripts/demo-refresh.mjs",
     "check:numbers": "node --env-file=.env.local scripts/check-numbers.mjs",
     "qa:e2e": "node --env-file=.env.local scripts/qa-e2e.mjs",
-    "qa:report": "node scripts/qa-report.mjs"
+    "qa:report": "node scripts/qa-report.mjs",
+    "qa:mixed-report": "node scripts/qa-mixed-report.mjs"
   },
   "dependencies": {
     "next": "16.3.6",

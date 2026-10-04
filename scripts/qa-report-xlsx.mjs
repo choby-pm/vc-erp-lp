@@ -1,9 +1,10 @@
-// QA 결과지 엑셀 (qa-report.mjs 가 만든 docs/qa-reports/<날짜>.json → <날짜>.xlsx). 구글 드라이브에 올리면 구글 시트로 열린다
+// QA 결과지 엑셀 (🔗 GP scripts/qa-report-xlsx.mjs 와 같은 코드). <날짜>.json → <날짜>.xlsx. 구글 드라이브에 올리면 구글 시트로 열린다
 // 탭: "요약"(결과 · 서비스별 · 환경 · 서비스·메뉴별) · "항목별"(서비스 › 1뎁스 메뉴 › 2뎁스 화면 › 3뎁스 기능, 필터 · 머리글 고정 · 통과/실패 색)
 import fs from 'node:fs';
 import ExcelJS from 'exceljs';
 
-export async function writeXlsx(jsonUrl, xlsxUrl) {
+// opts.byStage: 요약에 "생애주기 단계별" 표를 먼저 둔다 (LP · GP 혼합 결과지). 항목별 탭의 "업무 단계" 열은 rows[].stage
+export async function writeXlsx(jsonUrl, xlsxUrl, opts = {}) {
   const r = JSON.parse(fs.readFileSync(jsonUrl, 'utf8'));
   const wb = new ExcelJS.Workbook();
   wb.creator = 'VC ERP QA';
@@ -55,6 +56,34 @@ export async function writeXlsx(jsonUrl, xlsxUrl) {
     for (const col of 'BCDEFGH') s.getCell(`${col}${y}`).border = { bottom: thin };
     y++;
   }
+  if (opts.byStage) {
+    y += 1;
+    s.getCell(`B${y}`).value = '생애주기 단계별';
+    s.getCell(`B${y}`).font = font({ size: 12, bold: true });
+    y++;
+    ['단계', '', 'LP · GP', '항목', '통과', '연동', '차단'].forEach((h, i) => {
+      const c = s.getCell(y, i + 2);
+      c.value = h;
+      c.font = font({ bold: true, color: { argb: C.headInk } });
+      c.fill = fill(C.head);
+      c.border = border;
+    });
+    y++;
+    for (const g of groups((x) => x.stage)) {
+      const svc = ['공통', 'LP', 'GP'].map((v) => [v, g.filter((x) => x.service === v).length]).filter(([, n]) => n).map(([v, n]) => `${v} ${n}`).join(' · ');
+      s.mergeCells(`B${y}:C${y}`);
+      const vals = [g[0].stage, null, svc, g.length, tally(g), g.filter((x) => x.kind.includes('연동')).length, g.filter((x) => x.kind.includes('차단')).length];
+      vals.forEach((v, i) => {
+        if (i === 1) return;
+        const c = s.getCell(y, i + 2);
+        c.value = v;
+        c.font = font({ bold: i === 0, color: { argb: i === 4 && g.some((x) => !x.ok) ? C.failInk : C.ink } });
+        c.border = border;
+        c.alignment = { horizontal: i < 3 ? 'left' : 'center' };
+      });
+      y++;
+    }
+  }
   y += 1;
   s.getCell(`B${y}`).value = '서비스 · 메뉴별';
   s.getCell(`B${y}`).font = font({ size: 12, bold: true });
@@ -68,9 +97,11 @@ export async function writeXlsx(jsonUrl, xlsxUrl) {
     c.alignment = { horizontal: i < 3 ? 'left' : 'center' };
   });
   y++;
-  for (const g of groups((x) => `${x.service}\u0000${x.menu}`)) {
+  // 화면이 "큰 탭 › 작은 탭" 구조인 GP 조합 메뉴는 큰 탭까지 묶는다
+  const topOf = (x) => (x.service === 'GP' && x.screen.includes(' › ') ? x.screen.split(' › ')[0] : '');
+  for (const g of groups((x) => [x.service, x.menu, topOf(x)].join('|'))) {
     const [bg, ink] = svcStyle(g[0].service);
-    const vals = [g[0].service, g[0].menu, [...new Set(g.map((x) => x.screen))].join(' · '), g.length, tally(g), g.filter((x) => x.kind.includes('연동')).length, g.filter((x) => x.kind.includes('차단')).length];
+    const vals = [g[0].service, topOf(g[0]) ? `${g[0].menu} › ${topOf(g[0])}` : g[0].menu, [...new Set(g.map((x) => (topOf(x) ? x.screen.split(' › ').slice(1).join(' › ') : x.screen)))].join(' · '), g.length, tally(g), g.filter((x) => x.kind.includes('연동')).length, g.filter((x) => x.kind.includes('차단')).length];
     vals.forEach((v, i) => {
       const c = s.getCell(y, i + 2);
       c.value = v;

@@ -1,6 +1,7 @@
 # 96. QA 시나리오 — GP · LP 업무 흐름 순서
 
 > GP(운용사)와 LP(출자기관)가 실제로 일하는 순서대로, 각 단계에서 **한쪽이 한 일이 다른 쪽에 제대로 도착하는지**까지 확인한다.
+> GP 단독 QA는 GP 저장소 `docs/96_qa_scenarios.md`(41개). 둘을 생애주기 순서로 합친 혼합 결과지: `npm run qa:mixed-report` → `docs/qa-reports/<날짜>-mixed.md · .xlsx`
 > 실행 스크립트: `npm run qa:e2e` (`scripts/qa-e2e.mjs`), 결과지: `npm run qa:report` → `docs/qa-reports/<날짜>.md · .xlsx · .csv`. 배포 GP·LP 사이트에 실제로 요청을 보내고, 끝나면 짝 맞춘 데모 갱신으로 처음 상태로 되돌린다.
 >
 > - 환경: 배포 LP <https://vc-erp-lp.vercel.app> ↔ 배포 GP <https://vc-erp-gp.vercel.app> (웹훅·응답 API가 실제로 오가는 유일한 환경)

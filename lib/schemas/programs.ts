@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { STRATEGIES } from "@/lib/labels";
-import { optionalAmount } from "./common";
+import { optionalAmount, optionalText } from "./common";
 
 // 출자사업 API 요청 형식 (05 API 설계 3-4)
 
@@ -12,6 +12,8 @@ export const programSchema = z
     name: z.string("사업명을 입력하세요").trim().min(1, "사업명을 입력하세요").max(100, "사업명은 100자 이하로 입력하세요"),
     apply_start_date: isoDate("접수 시작일을 입력하세요"),
     apply_end_date: isoDate("접수 종료일을 입력하세요"),
+    // 접수 방법 안내 — 공고 게시판에 보인다 (L51). 연동 안 된 GP는 이 안내대로 기관 창구에 낸다
+    apply_guide: optionalText(1000, "접수 방법 안내는 1000자 이하로 입력하세요"),
   })
   .refine((v) => v.apply_start_date <= v.apply_end_date, { message: "접수 종료일은 시작일 이후여야 합니다", path: ["apply_end_date"] });
 export type ProgramInput = z.infer<typeof programSchema>;

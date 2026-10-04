@@ -46,6 +46,17 @@ export default async function ProgramDetailPage(props: PageProps<"/programs/[pro
         {canWrite && <ProgramActions programId={program.id} status={program.status} />}
       </div>
 
+      {(program.status === "open" || program.status === "reviewing") ? (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <Link href={`/board/${program.id}`} className="font-semibold hover:underline">공고 게시판에 공개됨</Link> · 이 서비스를 쓰는 모든 기관과 연동 GP가 봅니다 (예산 · 접수 현황은 보이지 않음).
+          {program.apply_guide ? <span className="mt-1 block text-emerald-900">접수 방법: {program.apply_guide}</span> : <span className="mt-1 block text-amber-700">접수 방법 안내가 없습니다. 연동되지 않은 GP는 지원 방법을 알 수 없습니다.</span>}
+        </p>
+      ) : program.status === "draft" ? (
+        <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          공고하면 공고 게시판에 올라갑니다{program.apply_guide ? ` · 접수 방법: ${program.apply_guide}` : " · 사업 정보 수정에서 접수 방법 안내를 적어 두세요"}.
+        </p>
+      ) : null}
+
       <ol className="grid grid-cols-4 gap-1 rounded-2xl border border-slate-200 bg-white p-3">
         {PROGRAM_STATUSES.map((s, i) => (
           <li

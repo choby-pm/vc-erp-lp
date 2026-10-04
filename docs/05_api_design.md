@@ -189,6 +189,7 @@ LP ERP에 더하는 것:
 |---|---|---|---|
 | GET | `/performance?as_of=&group_by=vintage\|strategy\|gp\|source` | 포트폴리오 합계와 묶음별 TVPI·DPI·RVPI·IRR (4-4) | BR-PERF-01~06 |
 | GET | `/commitments/{commitment_id}/performance?as_of=` | 출자 건 성과 + 현금흐름 목록 (IRR 근거) | BR-PERF-04 |
+| GET | `/board?strategy=&org_id=&status=` · `/board/{program_id}` | 출자사업 공고 게시판: **모든 기관**의 접수 중 · 심사 중 공고(공고 항목만, `is_mine`). 기관 분리의 예외 (R8-1, L50) | 11 R8 |
 | GET | `/dashboard` | `{ today, budget, portfolio, cash: { month, this_month, overdue_unpaid, months }, schedule: [{ date, kind, title, detail, href }], alerts: [{ key, label, tone, items }] }`. budget = 올해 예산(예산 화면과 같은 값, 없으면 null), portfolio = 성과 화면 '전체' 행, cash = 자금 계획 12개월, schedule = 오늘~30일 기한·예정일(납입 기한·총회·분배일·결성 기한·접수 마감·보고 기한) (R5-4, R7-1) | 04 14장 |
 | POST 🔄 | `/funds/{fund_id}/key-person-review` | 핵심 운용 인력 변경 확인 (주의 목록에서 빠짐) | L37 |
 
@@ -384,6 +385,15 @@ GP 저장소(`vc-erp/gp`)에 구현하고 GP 문서(05 API 설계 5-2, 99 결정
 - GP에서 조합 운용 인력을 지정·교체할 때 `fund.updated` 이벤트를 만든다. 지금은 이벤트가 없어 LP가 핵심 운용 인력 변경을 알 수 없다 (GP 코드 확인)
 
 ---
+
+## 5-5. GP가 LP를 부르는 API (R8, L50 · GP D47)
+
+| 방법 | 주소 | 내용 |
+|---|---|---|
+| GET | `/api/gp/v1/programs?strategy=&org_id=&status=` · `/programs/{program_id}` | 공고 게시판 (서명한 요청). 기관마다 `linked`(이 GP와 연동됐는지) |
+
+- 인증: 새 키 없이 웹훅과 같은 연결별 비밀 값. 헤더 `X-LP-Connection-Id`(LP 쪽 연동 설정 ID), `X-GP-Timestamp`, `X-GP-Signature` = `sha256=HMAC(비밀 값, 타임스탬프 + "." + "<METHOD> <경로+쿼리>
+<본문>")`. 틀리거나 5분 넘게 차이 나면 401 (`lib/gp/signed-request.ts`)
 
 ## 6. 주기 작업
 

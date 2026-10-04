@@ -42,7 +42,7 @@ export function ProgramForm({
   program,
 }: {
   budgets: Budget[];
-  program?: { id: string; budget_id: string; name: string; apply_start_date: string; apply_end_date: string };
+  program?: { id: string; budget_id: string; name: string; apply_start_date: string; apply_end_date: string; apply_guide: string | null };
 }) {
   const router = useRouter();
   const [values, setValues] = useState({
@@ -50,6 +50,7 @@ export function ProgramForm({
     name: program?.name ?? "",
     apply_start_date: program?.apply_start_date ?? "",
     apply_end_date: program?.apply_end_date ?? "",
+    apply_guide: program?.apply_guide ?? "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -100,6 +101,18 @@ export function ProgramForm({
           <span className="text-sm font-medium text-slate-700">접수 종료일</span>
           <input type="date" value={values.apply_end_date} onChange={(e) => setValues({ ...values, apply_end_date: e.target.value })} className={inputClass} />
           {errors.apply_end_date && <p className="mt-1 text-xs text-red-600">{errors.apply_end_date}</p>}
+        </label>
+        <label className="block sm:col-span-3">
+          <span className="text-sm font-medium text-slate-700">접수 방법 안내 (선택)</span>
+          <textarea
+            value={values.apply_guide}
+            onChange={(e) => setValues({ ...values, apply_guide: e.target.value })}
+            rows={2}
+            placeholder="예: 제안서와 운용 계획서를 접수 기간 안에 출자사업 담당 메일로 보내 주세요. 연동 GP는 GP ERP에서 바로 지원할 수 있습니다."
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-slate-500">공고하면 공고 게시판에 보입니다. 이 서비스와 연동되지 않은 GP는 이 안내대로 지원합니다 (L51)</p>
+          {errors.apply_guide && <p className="mt-1 text-xs text-red-600">{errors.apply_guide}</p>}
         </label>
       </div>
       {message && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{message}</p>}

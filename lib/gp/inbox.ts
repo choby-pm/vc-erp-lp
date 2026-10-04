@@ -12,7 +12,7 @@ import { jobStatus } from "@/lib/services/jobs";
 //   지난 이벤트를 하나씩 처리할 필요가 없다 (R3 계획 R3-4). GP에는 받았다고(200) 답해 재전송을 멈춘다
 
 export const SYNC_JOB = "gp_sync";
-const MAX_SKEW_MS = 5 * 60_000;
+export const MAX_SKEW_MS = 5 * 60_000;
 const PULL_PAGE = 100;
 const PULL_MAX_PAGES = 20;
 
@@ -29,7 +29,7 @@ export type GpEvent = {
 type Connection = { id: string; name: string; webhook_secret_env: string; created_at: Date };
 export type StoreResult = "stored" | "duplicate" | "before_link";
 
-async function loadConnection(connectionId: string): Promise<Connection> {
+export async function loadConnection(connectionId: string): Promise<Connection> {
   const [c] = await sql<Connection[]>`select id, name, webhook_secret_env, created_at from gp_connections where id = ${connectionId}`;
   if (!c) throw new AppError(404, "NOT_FOUND", "GP 연동 설정을 찾을 수 없습니다");
   return c;
@@ -40,7 +40,7 @@ export function signatureOf(secret: string, timestamp: string, body: string) {
   return `sha256=${createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex")}`;
 }
 
-function sameSignature(given: string, expected: string) {
+export function sameSignature(given: string, expected: string) {
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);

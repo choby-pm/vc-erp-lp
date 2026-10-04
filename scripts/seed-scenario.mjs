@@ -221,6 +221,10 @@ try {
     where p.org_id = ${ORG_A} and p.name = ${PROGRAM_NAME} and t.name = ${TRACK_NAME}
   `;
   if (!track) throw new Error(`${PROGRAM_NAME} · ${TRACK_NAME} 이 없습니다`);
+  // 접수 방법 안내 (R8-1, L51). 이미 공고한 사업은 화면에서 못 고치므로(BR-PRG-02) 시드에서 비어 있을 때만 넣는다
+  const guide = '제안서 · 운용 계획서 · 핵심 운용 인력 이력을 접수 기간 안에 하늘연금 출자사업 담당 메일로 보내 주세요. 이 서비스와 연동된 GP는 GP ERP에서 바로 지원할 수 있습니다.';
+  const g = await sql`update programs set apply_guide = ${guide} where org_id = ${ORG_A} and name = ${PROGRAM_NAME} and apply_guide is null returning id`;
+  log(g.length ? '정기 출자사업 접수 방법 안내 넣음' : '정기 출자사업 접수 방법 안내: 이미 있음');
   const crit = await criteria(ORG_A);
   for (const c of CANDIDATES) await candidate(ORG_A, ua, track.id, budgetA, c, crit);
   await deeptech(ORG_A, ua, budgetA, crit);

@@ -15,6 +15,7 @@ export type ProgramListItem = {
   budget_year: number;
   apply_start_date: string;
   apply_end_date: string;
+  apply_guide: string | null; // 접수 방법 안내 (공고 게시판, L51)
   track_count: number;
   planned_amount: number;
   proposal_count: number;
@@ -50,7 +51,7 @@ const trackStats = sql`
 
 export async function listPrograms(orgId: string) {
   return sql<ProgramListItem[]>`
-    select g.id, g.name, g.status, g.budget_id, b.budget_year, g.apply_start_date, g.apply_end_date,
+    select g.id, g.name, g.status, g.budget_id, b.budget_year, g.apply_start_date, g.apply_end_date, g.apply_guide,
            count(t.id)::int as track_count,
            coalesce(sum(t.planned_amount), 0)::bigint as planned_amount,
            coalesce(sum(st.proposal_count), 0)::int as proposal_count,
@@ -106,8 +107,8 @@ async function loadDraft(orgId: string, programId: string) {
 export async function createProgram(orgId: string, userId: string, input: ProgramInput) {
   await assertBudget(orgId, input.budget_id);
   const [p] = await sql<{ id: string }[]>`
-    insert into programs (org_id, budget_id, name, apply_start_date, apply_end_date, created_by)
-    values (${orgId}, ${input.budget_id}, ${input.name}, ${input.apply_start_date}, ${input.apply_end_date}, ${userId})
+    insert into programs (org_id, budget_id, name, apply_start_date, apply_end_date, apply_guide, created_by)
+    values (${orgId}, ${input.budget_id}, ${input.name}, ${input.apply_start_date}, ${input.apply_end_date}, ${input.apply_guide}, ${userId})
     returning id
   `;
   return getProgram(orgId, p.id);
@@ -118,7 +119,7 @@ export async function updateProgram(orgId: string, programId: string, input: Pro
   await assertBudget(orgId, input.budget_id);
   await sql`
     update programs set budget_id = ${input.budget_id}, name = ${input.name},
-      apply_start_date = ${input.apply_start_date}, apply_end_date = ${input.apply_end_date}
+      apply_start_date = ${input.apply_start_date}, apply_end_date = ${input.apply_end_date}, apply_guide = ${input.apply_guide}
     where id = ${programId} and org_id = ${orgId}
   `;
   return getProgram(orgId, programId);

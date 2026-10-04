@@ -47,6 +47,7 @@ export const NAV: NavSection[] = [
         tabs: [
           { href: "/proposals", label: "출자 제안" },
           { href: "/programs", label: "출자사업" },
+          { href: "/board", label: "공고 게시판" },
           { href: "/budgets", label: "출자 예산" },
         ],
       },

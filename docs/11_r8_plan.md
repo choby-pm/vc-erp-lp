@@ -51,6 +51,10 @@ GP 결성 · LP 결성 확인 (결성 기한 · 최소 결성 규모 · 비율 �
 | DB (LP 마이그레이션 011) | `programs.apply_guide`(접수 방법 안내), `programs.source`(`internal` / 나중에 `external`) · `source_url`(외부 원문 링크) — 고도화에서 외부 공고 수집을 붙일 자리(L51), 게시판 항목만 고르는 뷰 |
 | 출자사업 화면 | "게시판에 공개됨" 표시, 접수 방법 입력 |
 
+> R8-1 구현 (2026-10-04): 마이그레이션 011(`programs.apply_guide` · `source` · `source_url`, 외부 공고는 원문 링크 필수, 뷰 `v_board_programs`). `lib/services/board.ts`, `lib/gp/signed-request.ts`(GP가 LP를 부르는 요청 확인: X-LP-Connection-Id + 웹훅과 같은 비밀 값으로 "<METHOD> <경로+쿼리>
+<본문>" 서명, 5분), `GET /api/v1/board` · `/board/{id}`(로그인 사용자, is_mine), `GET /api/gp/v1/programs` · `/programs/{id}`(서명, 기관별 linked). 화면: 출자 심사 → "공고 게시판" 탭(목록 · 분야 필터 · D-day, 상세 · 공고 조건 · 지원 방법), 출자사업 화면에 "게시판에 공개됨" · 접수 방법 안내 입력
+> 검수 20개 ✓: 하늘 자기 공고 · 바다에게 하늘 공고(공고 항목만, 예산 · 접수 현황 없음) · 바다가 하늘 내부 출자사업 API는 404 · 분야 필터 · 잘못된 조건 400 · 로그인 없이 401 · 바다 작성 중 공고는 게시판에 없음 → 공고하면 하늘에게 보임 · GP 서명 요청 200(두 기관, 둘 다 linked) · 비밀 값 틀림 · 10분 전 시각 · 서명한 주소와 다른 쿼리 · 없는 연결 · 헤더 없음 모두 401. 검수 공고는 지움
+
 ### R8-2. GP · 공고 보기 · 지원
 
 | 할 일 | 내용 |

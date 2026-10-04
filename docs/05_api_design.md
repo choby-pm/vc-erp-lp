@@ -390,7 +390,8 @@ GP 저장소(`vc-erp/gp`)에 구현하고 GP 문서(05 API 설계 5-2, 99 결정
 
 | 방법 | 주소 | 내용 |
 |---|---|---|
-| GET | `/api/gp/v1/programs?strategy=&org_id=&status=` · `/programs/{program_id}` | 공고 게시판 (서명한 요청). 기관마다 `linked`(이 GP와 연동됐는지) |
+| GET | `/api/gp/v1/programs?strategy=&org_id=&status=` · `/programs/{program_id}` | 공고 게시판 (서명한 요청). 기관마다 `linked`(이 GP와 연동됐는지) · `gp_lp_id`(그 기관이 GP 쪽 어느 출자자인지) |
+| POST | `/api/gp/v1/applications` | 공고 지원 받기 `{ gp_proposal_id, gp_lp_id, program_id, track_id }` → 200 `{ lp_proposal_id, received_at, result: received / already_received }`, 거부 422 + 코드 (R8-3, L54) |
 
 - 인증: 새 키 없이 웹훅과 같은 연결별 비밀 값. 헤더 `X-LP-Connection-Id`(LP 쪽 연동 설정 ID), `X-GP-Timestamp`, `X-GP-Signature` = `sha256=HMAC(비밀 값, 타임스탬프 + "." + "<METHOD> <경로+쿼리>
 <본문>")`. 틀리거나 5분 넘게 차이 나면 401 (`lib/gp/signed-request.ts`)

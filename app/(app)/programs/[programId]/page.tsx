@@ -111,6 +111,7 @@ export default async function ProgramDetailPage(props: PageProps<"/programs/[pro
                         {pr.fund_name}
                       </Link>
                       <span className="ml-2 text-xs text-slate-500">{pr.gp_name}</span>
+                      {pr.data_source === "gp_api" && <span title="GP ERP에서 공고에 지원했습니다 (R8)" className="ml-2 rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700">GP 연동 지원</span>}
                     </td>
                     <td className="px-5 py-2.5 text-slate-600">{pr.track_name}</td>
                     <td className="px-5 py-2.5 text-right tabular-nums text-slate-700">{formatKRW(pr.requested_amount)}</td>

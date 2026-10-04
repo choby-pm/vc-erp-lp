@@ -53,9 +53,13 @@ type GpProposal = {
   status: "proposed" | "reviewing" | "committed" | "declined";
   proposed_amount: number | null;
   proposed_date: string;
-  last_sent_at: string;
+  last_sent_at: string | null; // 통지로 보낸 시각. 공고 지원(R8)은 통지 없이 올 수 있다
+  application?: { program_id: string; track_id: string; applied_at: string } | null; // 공고 지원이면 우리 출자사업 · 부문 (GP D47)
   fund: GpFundCore & { terms: GpTerms; managers?: GpManager[] };
 };
+
+// 공고 지원 접수 (R8-3): GP가 지원 API로 알린 제안 하나를 그 부문에 공고형으로 받는다. 받은 시각이 접수 시각 (L54)
+export type ApplicationIntake = { gpProposalId: string; trackId: string; receivedAt: Date };
 type GpLedgerEntry = { id: string; entry_type: EntryType; amount: number; entry_date: string; source: Record<string, unknown>; reversal_of_id: string | null };
 
 const rate = (v: number | null | undefined) => (v === null || v === undefined ? null : Number(v));
@@ -236,7 +240,11 @@ const kstDate = (d: string | Date) => new Date(d).toLocaleDateString("sv-SE", { 
 // · 새 제안: 연동 조합(결성 전이면 제안 목록의 조합 정보로) + 제안(개별 제안, gp_api, 요청액 = GP 제안 금액, 접수일 = GP 발송일)
 // · 이미 있으면 갱신만: 결정 전이면 요청액을 GP 값으로. 심사 단계는 LP 것이라 건드리지 않는다
 // · GP에서 이미 확약·거절로 끝난 제안은 새로 접수하지 않는다 (LP가 심사할 일이 없다) ⚠️
-export async function syncProposals(orgId: string, gpId: string, opts: { gpFundId?: string; actor?: GpActor } = {}): Promise<ProposalIntake[]> {
+export async function syncProposals(
+  orgId: string,
+  gpId: string,
+  opts: { gpFundId?: string; actor?: GpActor; application?: ApplicationIntake } = {},
+): Promise<ProposalIntake[]> {
   const gp = await gpClient(orgId, gpId, opts.actor);
   const list = (await gp.get<GpProposal[]>("/proposals")).filter((p) => !opts.gpFundId || p.fund.id === opts.gpFundId);
   const results: ProposalIntake[] = [];
@@ -261,6 +269,12 @@ export async function syncProposals(orgId: string, gpId: string, opts: { gpFundI
       results.push({ ...base, result: "skipped", reason: "GP 제안 금액이 없음" });
       continue;
     }
+    // 공고 지원은 GP가 지원 API로 알린 그때만 공고 부문에 받는다. 다른 동기화에서 먼저 보이면 개별 제안으로 잘못 받지 않게 건너뛴다
+    const intake = gpP.application && opts.application?.gpProposalId === gpP.id ? opts.application : null;
+    if (gpP.application && !intake) {
+      results.push({ ...base, result: "skipped", reason: "공고 지원 — GP가 지원을 보내면 공고 부문에 접수" });
+      continue;
+    }
 
     // 조합: 이미 있으면 그대로(조합 정보는 조합 이벤트가 맞춘다), 없으면 제안의 조합 정보로 만든다
     const [fund] = await sql<{ id: string }[]>`select id from funds where org_id = ${orgId} and gp_fund_id = ${gpP.fund.id}`;
@@ -268,15 +282,16 @@ export async function syncProposals(orgId: string, gpId: string, opts: { gpFundI
 
     const created = await sql.begin(async (tx) => {
       const [row] = await tx<{ id: string }[]>`
-        insert into proposals (org_id, gp_id, fund_id, proposal_channel, requested_amount, received_date, data_source, gp_proposal_id)
-        values (${orgId}, ${gpId}, ${fundId}, 'direct', ${gpP.proposed_amount}, ${kstDate(gpP.last_sent_at)}, 'gp_api', ${gpP.id})
+        insert into proposals (org_id, gp_id, fund_id, proposal_channel, program_track_id, requested_amount, received_date, data_source, gp_proposal_id)
+        values (${orgId}, ${gpId}, ${fundId}, ${intake ? "program" : "direct"}, ${intake?.trackId ?? null}, ${gpP.proposed_amount},
+                ${kstDate(intake?.receivedAt ?? gpP.last_sent_at ?? gpP.proposed_date)}, 'gp_api', ${gpP.id})
         on conflict do nothing
         returning id
       `;
       if (!row) return false;
       await tx`
         insert into proposal_stage_history (org_id, proposal_id, from_status, to_status, note)
-        values (${orgId}, ${row.id}, null, 'received', 'GP 출자 제안 자동 접수')
+        values (${orgId}, ${row.id}, null, 'received', ${intake ? "공고 지원 자동 접수 (GP 연동)" : "GP 출자 제안 자동 접수"})
       `;
       return true;
     });

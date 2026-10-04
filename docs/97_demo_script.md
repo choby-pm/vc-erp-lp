@@ -1,6 +1,6 @@
 # 97. 시연 대본 (약 17분)
 
-> 배포 사이트에서 GP·LP 두 시스템을 보여줄 때 화면별로 할 말. 순서는 [00 제출용 요약](00_summary.md) 5장 둘러보기와 같고, 캡처가 들어간 소개 페이지는 [intro/index.html](intro/index.html) 이다.
+> 배포 사이트에서 GP·LP 두 시스템을 보여줄 때 화면별로 할 말. 순서는 [00 제출용 요약](00_summary.md) 5장 둘러보기와 같고, 캡처가 들어간 소개 페이지는 <https://vc-erp-lp.vercel.app/intro> 이다.
 >
 > - LP <https://vc-erp-lp.vercel.app> · GP <https://vc-erp-gp.vercel.app> — 첫 화면 "데모로 둘러보기"
 > - 데모는 매일 03:00(KST)에 처음 상태로 돌아간다. 시연 전에 누가 먼저 눌렀다면 2·3·4·6번 화면이 이미 바뀌어 있을 수 있다

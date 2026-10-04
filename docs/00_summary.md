@@ -4,6 +4,7 @@
 > 같은 작업 폴더의 GP 시스템([`vc-erp/gp`](../../gp/docs/00_summary.md))과 연동 API·웹훅으로 **양방향** 연결된다. 개인 연구 목적 프로젝트이며 실제 서비스와 무관하다.
 
 - 배포: LP <https://vc-erp-lp.vercel.app> · GP <https://vc-erp-gp.vercel.app> (둘 다 데모 전용 DB, 매일 03:00 KST 초기화)
+- 소개 페이지(로그인 없이, 캡처 · 연동 · QA 한 장): <https://vc-erp-lp.vercel.app/intro>
 - 로그인: 첫 화면의 **데모로 둘러보기**에서 기관(하늘연금 · 바다성장출자)과 역할(출자 담당 · 결재권자 · 관리자)을 고른다
 
 ## 1. 한 줄 요약

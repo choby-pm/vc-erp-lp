@@ -5,7 +5,7 @@
 
 똑똑 PM 지원용 개인 작업물이며, 실제 서비스와 무관한 연구 목적 프로젝트다.
 
-- **제출용 요약 · 둘러보기 순서: [docs/00_summary.md](docs/00_summary.md)** · 소개 페이지(캡처): [docs/intro/index.html](docs/intro/index.html) · 시연 대본: [docs/97_demo_script.md](docs/97_demo_script.md)
+- **제출용 요약 · 둘러보기 순서: [docs/00_summary.md](docs/00_summary.md)** · 소개 페이지(캡처, 로그인 없이 공개): <https://vc-erp-lp.vercel.app/intro> (원본 `public/intro/index.html`) · 시연 대본: [docs/97_demo_script.md](docs/97_demo_script.md)
 - 배포(데모): <https://vc-erp-lp.vercel.app> · 연결된 GP <https://vc-erp-gp.vercel.app> — 첫 화면 "데모로 둘러보기", 매일 03:00 KST 초기화
 - 기획 문서: [docs/README.md](docs/README.md)
 ## 실행 방법

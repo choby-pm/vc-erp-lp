@@ -12,6 +12,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // 로그인 화면, API, 정적 파일은 제외
-  matcher: ["/((?!login|api|_next/static|_next/image|favicon.ico).*)"],
+  // 로그인 화면, API, 소개 페이지(public/intro, 로그인 없이 공개), 정적 파일은 제외
+  matcher: ["/((?!login|api|intro|_next/static|_next/image|favicon.ico).*)"],
 };

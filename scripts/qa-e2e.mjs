@@ -90,6 +90,12 @@ try {
   const inTrack = props.filter((p) => p.program_id === program.id && p.track_name === track?.name);
   check('Q1-2', '초기 부문 200억 · 접수 3건 · 선정 2곳', track?.planned_amount === 200 * 억 && inTrack.length === 3 && inTrack.filter((p) => p.status === 'selected').length === 2, `${track?.planned_amount / 억}억 · ${inTrack.length}건 · 선정 ${inTrack.filter((p) => p.status === 'selected').length}`);
 
+  const boardA = list(await off('GET', '/board'));
+  const boardB = list(await bOff('GET', '/board'));
+  const hanulCall = boardB.find((x) => x.name === '2026년 정기 출자사업');
+  const badaCall = boardA.find((x) => x.name === '2026년 하반기 성장 출자사업');
+  check('Q1-3', '공고 게시판: 두 기관 공고가 서로 보인다 (공고 항목만)', hanulCall && !hanulCall.is_mine && badaCall && !badaCall.is_mine && !('budget_id' in hanulCall), `바다→하늘 ${Boolean(hanulCall)} · 하늘→바다 ${Boolean(badaCall)}`);
+
   // ── 2. GP 제안 → LP 접수
   phase('2. GP · 출자 제안 → LP 자동 접수');
   const dt = prop('딥테크');
@@ -101,6 +107,26 @@ try {
   await adm('POST', '/integration/pull', {});
   const dtCount = list(await off('GET', '/proposals')).filter((p) => p.fund_name.startsWith('딥테크')).length;
   check('Q2-2 🔗', 'GP 재발송해도 LP 제안 1건', dtCount === 1, `GP 재발송 ${resend.status} · LP 딥테크 제안 ${dtCount}건`);
+  const gpCalls = list(await gp('GET', '/lp-calls'));
+  check('Q2-3 🔗', 'GP 출자사업 공고 = LP 게시판 (두 기관 · 연동됨)', gpCalls.length >= 2 && gpCalls.every((c) => c.linked && c.gp_lp_id), gpCalls.map((c) => `${c.org_name} ${c.linked ? '연동' : '-'}`).join(' / '));
+  const gHanulCall = gpCalls.find((c) => c.name === '2026년 정기 출자사업');
+  const earlyTrack = gHanulCall.tracks[0];
+  const growthFund = gFunds.find((f) => f.name.startsWith('그로스'));
+  const mismatch = await gp('POST', `/lp-calls/${gHanulCall.id}/apply`, { fund_id: growthFund.id, track_id: earlyTrack.id, proposed_amount: 20 * 억, memo: null });
+  check('Q2-4 ⛔', '성장 조합으로 초기 부문 지원 → 거부', mismatch.status === 422 && mismatch.error?.code === 'STRATEGY_MISMATCH', `${mismatch.status} ${mismatch.error?.code}`);
+  const nextBio = gFunds.find((f) => f.name.startsWith('넥스트 바이오'));
+  const applied = await gp('POST', `/lp-calls/${gHanulCall.id}/apply`, { fund_id: nextBio.id, track_id: earlyTrack.id, proposed_amount: 20 * 억, memo: 'QA 공고 지원' });
+  const lpApplied = await poll(async () => list(await off('GET', '/proposals')).find((p) => p.fund_name.startsWith('넥스트 바이오')), Boolean, 4, 1500);
+  check('Q2-5 🔗', 'GP 지원 → LP 초기 부문에 공고형 자동 접수', applied.status === 201 && applied.data?.status === 'sent' && lpApplied?.proposal_channel === 'program' && lpApplied.track_name === earlyTrack.name, `GP ${applied.status} ${applied.data?.status} · LP ${lpApplied?.proposal_channel} ${lpApplied?.track_name}`);
+  {
+    const lpKeys = readEnv(new URL('../.env.local', import.meta.url));
+    const raw = JSON.stringify({ gp_proposal_id: crypto.randomUUID(), gp_lp_id: gHanulCall.gp_lp_id, program_id: gHanulCall.id, track_id: earlyTrack.id });
+    const ts = new Date().toISOString();
+    const sig = 'sha256=' + (await import('node:crypto')).createHmac('sha256', 'wrong-' + (lpKeys.GP_DEMO_WEBHOOK_SECRET ?? '').length).update(`${ts}.POST /api/gp/v1/applications
+${raw}`).digest('hex');
+    const forgedApp = await fetch(`${LP}/api/gp/v1/applications`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-lp-connection-id': conn.gp_connection_id, 'x-gp-timestamp': ts, 'x-gp-signature': sig }, body: raw });
+    check('Q2-6 ⛔🔗', '서명 위조 공고 지원 → 401', forgedApp.status === 401, String(forgedApp.status));
+  }
 
   // ── 3. LP 심사·선정 → GP 확약
   phase('3. LP · 심사 · 선정 결재 → GP 확약');
@@ -118,6 +144,18 @@ try {
   check('Q3-4', '선정 · 출자 건(결성 대기) · 예산 사용 200억', approved.status === 200 && dtAfter.status === 'selected' && dtCommit?.status === 'awaiting_formation' && b1.used_amount === 200 * 억, `${dtAfter.status} · ${dtCommit?.status} · ${b1.used_amount / 억}억 · gp_sync ${approved.data?.gp_sync?.status}`);
   const gMine2 = list(await gp('GET', `/funds/${gD.id}/proposals`)).find((p) => p.lp_name === '하늘연금');
   check('Q3-5 🔗', 'GP 하늘연금 확약 30억 · LP 직접', gMine2?.status === 'committed' && Number(gMine2.loc_amount) === 30 * 억 && gMine2.decided_via === 'lp_system', `${gMine2?.status} · ${Number(gMine2?.loc_amount) / 억}억 · ${gMine2?.decided_via}`);
+  {
+    const nb = lpApplied;
+    await off('POST', `/proposals/${nb.id}/stage`, { to_status: 'screening', note: null });
+    const crit = (await off('GET', '/evaluation-criteria')).data.criteria.filter((c) => !c.retired_at);
+    await off('PUT', `/proposals/${nb.id}/evaluations/screening`, { evaluated_date: null, opinion: 'QA', scores: crit.map((c) => ({ criterion_id: c.id, score: 80 })) });
+    await off('PUT', `/proposals/${nb.id}/selection-terms`, { budget_id: b0.id, planned_amount: 20 * 억, max_commitment_ratio: 0.25, formation_deadline: '2027-03-31', key_person_condition: 'QA 대표펀드매니저 유지' });
+    const ra = await off('POST', `/proposals/${nb.id}/selection-approvals`, { request_comment: 'QA 공고 지원 선정' });
+    const rb = await apr('POST', `/approvals/${ra.data?.approval_id}/approve`, { decision_comment: null });
+    const anchors = (await gp('GET', `/funds/${nextBio.id}/proposals`)).data.summary.anchors;
+    const anc = anchors.find((a) => a.lp_name === '하늘연금');
+    check('Q3-6 🔗', '공고 지원 선정 → GP 확약 + 앵커 조건 (필요한 최소 결성액 80억)', rb.status === 200 && anc?.required_fund_amount === 80 * 억 && anc.formation_deadline === '2027-03-31', `${rb.status} ${rb.data?.gp_sync?.status ?? rb.error?.message} · 필요 ${anc?.required_fund_amount / 억}억 · 남은 ${anc?.remaining_amount / 억}억`);
+  }
 
   // ── 4. 결성
   phase('4. 결성 · LP 결성 확인');
@@ -250,7 +288,7 @@ try {
   const pull = await adm('POST', '/integration/pull', {});
   const failed = (await adm("GET", "/integration")).data.counts?.failed ?? 0;
   check('Q10-3 🔗', '지금 가져오기 → 200 · 실패 0', pull.status === 200 && failed === 0, `${pull.status} · 실패 ${failed}`);
-  const pages = ['/', '/approvals', '/capital-calls', '/distributions', '/cash-plan', '/notices', '/reports', '/meetings', '/proposals', '/programs', '/budgets', '/commitments', '/performance', '/funds', '/gps', '/users', '/integration', '/evaluation-criteria', '/audit-logs'];
+  const pages = ['/', '/approvals', '/board', '/capital-calls', '/distributions', '/cash-plan', '/notices', '/reports', '/meetings', '/proposals', '/programs', '/budgets', '/commitments', '/performance', '/funds', '/gps', '/users', '/integration', '/evaluation-criteria', '/audit-logs'];
   const codes = await Promise.all(pages.map((p) => fetch(LP + p, { headers: { cookie: adm.cookie }, redirect: 'manual' }).then((r) => r.status)));
   const bad = pages.filter((_, i) => codes[i] !== 200);
   check('Q10-4', `LP 메뉴 화면 ${pages.length}개 → 200`, bad.length === 0, bad.length ? `실패 ${bad.join(', ')}` : '모두 200');

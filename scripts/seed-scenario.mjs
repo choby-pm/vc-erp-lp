@@ -18,6 +18,7 @@ const proposals = await jiti.import('@/lib/services/proposals.ts');
 const evaluations = await jiti.import('@/lib/services/evaluations.ts');
 const selection = await jiti.import('@/lib/services/selection.ts');
 const approvals = await jiti.import('@/lib/services/approvals.ts');
+const programs = await jiti.import('@/lib/services/programs.ts');
 
 const 억 = 100_000_000;
 const log = (m) => console.log(`  ${m}`);
@@ -212,6 +213,29 @@ async function deeptech(orgId, u, budgetId, crit) {
   log('→ 직접 해볼 거리: 출자 담당이 "선정 결재 올리기" → 결재권자가 승인 → GP 화면에서 "확약"');
 }
 
+// 바다성장출자 하반기 성장 출자사업 (R8-5, L50): 공고 게시판에 두 기관 공고가 보이고, GP 성장 조합(그로스 1호 · 딥테크)이 지원할 곳이 생긴다
+// GP 지원은 직접 해볼 거리로 남긴다 (L47)
+async function openBadaProgram(u, budgetId) {
+  const name = '2026년 하반기 성장 출자사업';
+  let [prog] = await sql`select id, status from programs where org_id = ${ORG_B} and name = ${name}`;
+  if (!prog) {
+    prog = await programs.createProgram(ORG_B, u.officer, {
+      budget_id: budgetId,
+      name,
+      apply_start_date: '2026-10-01',
+      apply_end_date: '2026-11-30',
+      apply_guide: '운용 계획서와 핵심 운용 인력 이력을 바다성장출자 출자사업팀에 우편 또는 메일로 보내 주세요. 이 서비스와 연동된 GP는 GP ERP에서 바로 지원할 수 있습니다.',
+    });
+    await programs.addTrack(ORG_B, prog.id, { name: '성장 부문', strategy: 'growth', planned_amount: 100 * 억, target_gp_count: 2, min_fund_size_amount: 200 * 억, max_commitment_ratio: 0.3 });
+    log(`${name} 만듦 · 성장 부문 100억 · 2곳 · 최소 결성 200억 · 비율 상한 30%`);
+  }
+  if (prog.status === 'draft' || !prog.status) {
+    await programs.openProgram(ORG_B, prog.id);
+    await sql`update programs set updated_at = ${kst('2026-10-01')} where id = ${prog.id}`;
+    log('공고 (접수 10/1 ~ 11/30) → 공고 게시판에 올라감');
+  } else log(`${name}: 이미 공고됨`);
+}
+
 try {
   console.log('하늘연금 (데모)');
   const ua = await users(ORG_A);
@@ -231,7 +255,8 @@ try {
 
   console.log('\n바다성장출자 (데모)');
   const ub = await users(ORG_B);
-  await ensureBudget(ORG_B, ub.officer, 2026, 300, ALLOC_B);
+  const budgetB = await ensureBudget(ORG_B, ub.officer, 2026, 300, ALLOC_B);
+  await openBadaProgram(ub, budgetB);
   console.log('\n✔ 데모 시나리오를 채웠습니다');
 } catch (err) {
   console.error('✖ 데모 시나리오 실패:', err.code ?? '', err.message, err.details ? JSON.stringify(err.details) : '');

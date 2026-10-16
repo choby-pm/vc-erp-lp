@@ -7,6 +7,7 @@ import { sendPendingAcks } from "@/lib/services/notices";
 import { sendPendingVotes } from "@/lib/services/meetings";
 import { pullAndProcessExclusive } from "@/lib/gp/sync";
 import { writeAudit } from "@/lib/services/audit";
+import { retryPendingReportRequests } from "@/lib/services/report-requests";
 
 // GET /api/cron/sync — Vercel Cron 이 부르는 GP 동기화 주기 작업 (05 API 설계 6장)
 // 모든 연결의 놓친 이벤트 가져오기 + 받은 이벤트 처리·재시도 (R3-4) + 못 보낸 제안 응답 보내기 (R3-5, BR-SYNC-11)
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
       responses: await sendPendingResponses(null, { type: "cron" }),
       acks: await sendPendingAcks(null, { type: "cron" }), // 못 보낸 통지 확인 (R5-1)
       votes: await sendPendingVotes(null, { type: "cron" }), // 승인됐는데 못 보낸 투표 (R5-3)
+      report_requests: await retryPendingReportRequests({type:"cron"}),
     };
     res = ok(result);
     await writeAudit({ actor_type: "cron", method: "GET", path: "/api/cron/sync", status: 200, detail: result, request });

@@ -13,6 +13,7 @@ import { upsertGpReports } from "@/lib/services/reports";
 import { upsertGpMeetings } from "@/lib/services/meetings";
 import { upsertGpDistributions, type GpDistribution } from "@/lib/services/distributions";
 import { fetchFundSharing } from "@/lib/services/sharing";
+import { syncReportRequests } from "@/lib/services/report-requests";
 
 // 받은 GP 이벤트 처리 — 동기화 (R3-4, 03 DB 설계 5장, 04 비즈니스 규칙 10-1)
 // · 이벤트는 "무엇이 바뀌었다"는 신호일 뿐이다. 본문으로 데이터를 만들지 않고 GP API로 다시 읽어 반영한다 (BR-SYNC-05)
@@ -134,6 +135,7 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
     catch(e){if(!(e instanceof AppError&&e.code==="SHARING_NOT_ALLOWED"))throw e;await fetchFundSharing(orgId,fundId,opts.actor);}
   }
   // 소집된 총회·안건·결과 (R5-3)
+  await syncReportRequests(orgId, fundId, opts.actor);
   const meetings = await upsertGpMeetings(orgId, fundId, await gp.get(`/funds/${gpFundId}/meetings`));
   return { fund_id: fundId, source: src.source, ledger, ...(imported ? { imported } : {}), calls, ...(past_payments ? { past_payments } : {}), reports, meetings, ...(distributions ? { distributions } : {}) };
 }
@@ -367,6 +369,7 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
     case "fund.status_changed":
     case "fund.updated":
     case "fund.sharing_updated":
+    case "report.request_updated":
     case "fund.terms_updated": {
       if (!fundId) return { done: false, reason: "조합 정보가 없는 이벤트" };
       const r = await syncFund(orgId, gpId, fundId, { create: false });

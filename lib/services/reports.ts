@@ -214,6 +214,8 @@ export async function upsertGpReports(orgId: string, fundId: string, reports: Gp
   for (const g of ordered) {
     const made = await sql.begin(async (tx) => {
       const t = tx as unknown as Db;
+      // 웹훅과 요청 회신 받기가 겹쳐도 같은 GP 보고를 한 번만 저장한다.
+      await tx`select id from funds where org_id=${orgId} and id=${fundId} for update`;
       const [exists] = await tx<{ id: string }[]>`select id from reports where org_id = ${orgId} and gp_report_id = ${g.id}`;
       let reportId = exists?.id;
       if (!reportId) {

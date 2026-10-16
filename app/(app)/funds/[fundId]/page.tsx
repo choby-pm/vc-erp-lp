@@ -52,6 +52,7 @@ export default async function FundDetailPage(props: PageProps<"/funds/[fundId]">
 
   return (
     <div className="space-y-6">
+      {fund.data_source==="gp_api"&&<Link href={`/funds/${fund.id}/report-requests`} className="inline-block text-sm font-medium text-emerald-700 underline">분기 운용 보고 요청·회신 →</Link>}
       {fund.data_source==="gp_api"&&<Link href={`/funds/${fund.id}/sharing`} className="inline-block text-sm font-medium text-emerald-700 underline">GP 자료 공유 상태·확대 요청 →</Link>}
       <div className="flex items-start justify-between gap-4">
         <div>

@@ -106,7 +106,7 @@ npm run dev                 # http://localhost:3200 (GP는 3000)
 npm run check:numbers       # 숫자 일치 점검 (-- --demo 는 배포 데모 DB)
 ```
 
-배포 데모 갱신: GP `npm run db:demo-refresh -- --prune-backups` 가 성공한 뒤 LP 같은 명령 → `vercel deploy --prod` (짝 맞춘 갱신, L26·L33).
+배포 데모 갱신: GP `npm run db:demo-migrate` 가 성공한 뒤 LP 같은 명령 → GP는 main push(자동 배포), LP는 `vercel deploy --prod` (L65). 데모 데이터를 새로 만들 때만 `db:demo-refresh -- --prune-backups` (짝 맞춘 갱신, L26·L33).
 
 ## 10. 남은 과제 (고도화)
 

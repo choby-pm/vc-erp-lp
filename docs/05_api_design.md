@@ -131,7 +131,7 @@ LP ERP에 더하는 것:
 | GET | `/commitments/{commitment_id}` | 상세 | |
 | GET 👁 | `/commitments/{commitment_id}/formation-check?commitment_amount=&fund_size_amount=&formation_date=` | 결성 확인 조건표. 수기는 입력 중인 값으로 미리 보기. 항목별 `ok`: 통과 / 미달 / `null`(해당 없음) | BR-CMT-02 |
 | POST 🔄💰 | `/commitments/{commitment_id}/confirm` | 결성 확인. 수기는 `{ "commitment_amount", "fund_size_amount", "formation_date" }`(결성 전 조합이면 조합도 결성 완료, L25), 연동은 본문 없음(GP와 다시 맞춘 뒤 GP 값). 미달이면 `422 FORMATION_CHECK_FAILED` + `details.checks` | BR-CMT-02~04 |
-| POST 🔄 | `/commitments/{commitment_id}/cancel` | 선정 취소 `{ "reason" }` | BR-CMT-05 |
+| POST 🔄 | `/commitments/{commitment_id}/cancel` | 선정 취소 `{ "reason" }`. 연동 제안이면 응답에 GP 확약 철회 통보 결과 `gp_sync` (L63). GP 명부 약정 확정 후는 409 `GP_ROSTER_CONFIRMED` | BR-CMT-05 |
 | POST 💰 | `/commitments/{commitment_id}/commitment-adjustments` | 약정 변경 (취소 행 + 새 행) `{ "new_amount", "entry_date", "memo" }`. 활성만(`COMMITMENT_NOT_ACTIVE`), 사유 필수, 연동이면 약정 대사 | BR-CMT-06 |
 | GET | `/commitments/{commitment_id}/ledger` | 우리 장부와 GP 원장 사본을 **나란히** (구분별 합계 + 지금 대사 상태, 7일 안 불일치는 `waiting`). 수기는 `gp: null` | BR-REC-04, 07 |
 | GET 👁 | `/commitments/{commitment_id}/close-check` | 청산 확인 조건표 | BR-CLOSE-01 |

@@ -11,14 +11,16 @@ import type { ProposalStatus } from "@/lib/labels";
 // · GP가 업무 규칙으로 거부하면(GP_REJECTED, 예: GP에서 이미 거절) LP 상태는 되돌리지 않고 경고만 남긴다.
 //   다시 보내도 같은 결과라 자동으로는 다시 보내지 않는다. 제안 화면의 "GP에 다시 보내기"로는 보낼 수 있다 ⚠️
 
-export type GpDecision = "reviewing" | "committed" | "declined";
+export type GpDecision = "reviewing" | "committed" | "declined" | "withdrawn";
 export type GpSync =
   | { status: "not_needed" } // 수기 제안, 또는 아직 보낼 상태가 아님(접수)
   | { status: "sent"; gp_proposal_status: GpDecision }
   | { status: "pending"; message: string } // GP에 닿지 못함 → 나중에 다시 보낸다
   | { status: "rejected"; message: string }; // GP가 거부 → 경고
 
-export function gpDecisionOf(status: ProposalStatus): GpDecision | null {
+// L63: 선정 후 출자 건을 선정 취소했으면 확약 철회(withdrawn)를 보낸다
+export function gpDecisionOf(status: ProposalStatus, commitmentCancelled = false): GpDecision | null {
+  if (status === "selected" && commitmentCancelled) return "withdrawn";
   if (status === "selected") return "committed";
   if (status === "rejected") return "declined";
   if (status === "received" || status === "withdrawn") return null;
@@ -52,6 +54,10 @@ type Target = {
   key_person_condition: string | null;
   min_fund_size_amount: number | null;
   program_name: string | null;
+  // 선정 취소된 출자 건 (L63)
+  commitment_cancelled: boolean;
+  cancelled_date: string | null;
+  cancel_reason: string | null;
 };
 
 async function loadTarget(orgId: string, proposalId: string) {
@@ -59,16 +65,18 @@ async function loadTarget(orgId: string, proposalId: string) {
     select p.id, p.org_id, p.gp_id, p.status, p.data_source, p.gp_proposal_id, p.decided_date, s.planned_amount,
            p.gp_response_sent_at, p.gp_response_status,
            s.formation_deadline::text, coalesce(s.max_commitment_ratio, t.max_commitment_ratio)::text as max_commitment_ratio,
-           s.key_person_condition, t.min_fund_size_amount, g.name as program_name
+           s.key_person_condition, t.min_fund_size_amount, g.name as program_name,
+           coalesce(m.status = 'cancelled', false) as commitment_cancelled, m.cancelled_date::text, m.cancel_reason
     from proposals p left join selection_terms s on s.proposal_id = p.id
     left join program_tracks t on t.id = p.program_track_id left join programs g on g.id = t.program_id
+    left join commitments m on m.proposal_id = p.id and m.org_id = p.org_id
     where p.org_id = ${orgId} and p.id = ${proposalId}
   `;
   return p ?? null;
 }
 
 async function send(p: Target, actor?: GpActor): Promise<GpSync> {
-  const decision = gpDecisionOf(p.status);
+  const decision = gpDecisionOf(p.status, p.commitment_cancelled);
   if (p.data_source !== "gp_api" || !p.gp_proposal_id || !decision) return { status: "not_needed" };
 
   const body =
@@ -89,7 +97,9 @@ async function send(p: Target, actor?: GpActor): Promise<GpSync> {
         }
       : decision === "declined"
         ? { decision, decided_date: p.decided_date }
-        : { decision };
+        : decision === "withdrawn"
+          ? { decision, decided_date: p.cancelled_date, reason: p.cancel_reason }
+          : { decision };
   try {
     const gp = await gpClient(p.org_id, p.gp_id, actor);
     await gp.put(`/proposals/${p.gp_proposal_id}/response`, body);
@@ -115,7 +125,7 @@ async function send(p: Target, actor?: GpActor): Promise<GpSync> {
 export async function sendGpResponse(orgId: string, proposalId: string, actor?: GpActor): Promise<GpSync> {
   const p = await loadTarget(orgId, proposalId);
   if (!p) return { status: "not_needed" };
-  const decision = gpDecisionOf(p.status);
+  const decision = gpDecisionOf(p.status, p.commitment_cancelled);
   if (decision && p.gp_response_sent_at && p.gp_response_status === decision) return { status: "sent", gp_proposal_status: decision };
   return send(p, actor);
 }
@@ -126,7 +136,7 @@ export async function resendGpResponse(orgId: string, proposalId: string, actor:
   const p = await loadTarget(orgId, proposalId);
   if (!p) throw notFound("출자 제안을");
   if (p.data_source !== "gp_api") throw new AppError(409, "NOT_LINKED_PROPOSAL", "수기 제안은 GP에 보낼 것이 없습니다", "BR-PROP-06");
-  if (!gpDecisionOf(p.status)) throw new AppError(409, "NOTHING_TO_SEND", "접수 단계라 GP에 보낼 응답이 없습니다. 심사를 시작하면 '검토 중'을 보냅니다", "BR-PROP-06");
+  if (!gpDecisionOf(p.status, p.commitment_cancelled)) throw new AppError(409, "NOTHING_TO_SEND", "접수 단계라 GP에 보낼 응답이 없습니다. 심사를 시작하면 '검토 중'을 보냅니다", "BR-PROP-06");
   return send(p, actor);
 }
 
@@ -139,9 +149,11 @@ export async function sendPendingResponses(orgId: string | null, actor?: GpActor
     select p.id, p.org_id, p.gp_id, p.status, p.data_source, p.gp_proposal_id, p.decided_date, s.planned_amount,
            p.gp_response_sent_at, p.gp_response_status,
            s.formation_deadline::text, coalesce(s.max_commitment_ratio, t.max_commitment_ratio)::text as max_commitment_ratio,
-           s.key_person_condition, t.min_fund_size_amount, g.name as program_name
+           s.key_person_condition, t.min_fund_size_amount, g.name as program_name,
+           coalesce(m.status = 'cancelled', false) as commitment_cancelled, m.cancelled_date::text, m.cancel_reason
     from proposals p left join selection_terms s on s.proposal_id = p.id
     left join program_tracks t on t.id = p.program_track_id left join programs g on g.id = t.program_id
+    left join commitments m on m.proposal_id = p.id and m.org_id = p.org_id
     where p.data_source = 'gp_api' and p.gp_response_sent_at is null and p.status not in ('received', 'withdrawn')
       and p.gp_response_error_code is distinct from 'GP_REJECTED'
       and (${orgId}::uuid is null or p.org_id = ${orgId}::uuid)

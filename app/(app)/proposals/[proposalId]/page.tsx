@@ -19,7 +19,7 @@ import { getSelectionTerms, selectionCheck } from "@/lib/services/selection";
 
 export const metadata = { title: "출자 제안 · VC ERP LP" };
 
-const GP_DECISION_LABEL = { reviewing: "검토 중", committed: "확약", declined: "거절" } as const;
+const GP_DECISION_LABEL = { reviewing: "검토 중", committed: "확약", declined: "거절", withdrawn: "확약 철회(선정 취소)" } as const;
 
 // 출자 제안 상세: 심사 단계 · 선정 조건 · 선정 결재 · 평가 · 이력 (R2-3, R2-4) · GP 응답 상태 (연동 제안, R3-5)
 export default async function ProposalDetailPage(props: PageProps<"/proposals/[proposalId]">) {
@@ -44,7 +44,7 @@ export default async function ProposalDetailPage(props: PageProps<"/proposals/[p
   // 거쳐 온 심사 단계 중 가장 뒤 단계. 그 앞에서 거치지 않은 단계는 건너뛴 것
   const lastReached = Math.max(...REVIEW_STAGES.map((s, i) => (reached.has(s) ? i : -1)));
   // GP에 보낼 응답: 지금 LP 상태에 맞는 GP 상태. 보냈으면 gp_response_sent_at 이 있다 (BR-PROP-06, BR-SYNC-11)
-  const wanted = gpDecisionOf(p.status);
+  const wanted = gpDecisionOf(p.status, commitment?.status === "cancelled");
   const gpSent = wanted !== null && p.gp_response_sent_at !== null && p.gp_response_status === wanted;
 
   return (

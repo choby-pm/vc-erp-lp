@@ -105,6 +105,8 @@ export default function CommitmentActions({
     const body = await res.json().catch(() => ({}));
     setPending(false);
     if (!res.ok) return setError(body.error?.details?.fields?.reason ?? body.error?.message ?? "취소하지 못했습니다");
+    const sync = body.data?.gp_sync;
+    if (sync && sync.status !== "sent" && sync.status !== "not_needed") window.alert(`선정은 취소했지만 GP에 철회 통보를 ${sync.status === "rejected" ? "GP가 거부했습니다" : "아직 보내지 못했습니다 (주기 작업이 다시 보냅니다)"}: ${sync.message}`);
     router.refresh();
   }
 
@@ -169,7 +171,7 @@ export default function CommitmentActions({
       {mode === "cancel" && canWrite && (
         <div className="space-y-3">
           <p className="text-sm text-slate-600">
-            조합이 결성되지 않았거나 출자를 하지 않기로 했을 때 선정을 취소합니다. 출자 예정액은 예산 사용액에서 빠집니다. 연동 조합이어도 GP에는 알리지 않으니 GP 담당자에게 따로 알리세요.
+            조합이 결성되지 않았거나 출자를 하지 않기로 했을 때 선정을 취소합니다. 출자 예정액은 예산 사용액에서 빠집니다. 연동 조합이면 GP에 확약 철회를 통보하고, GP 담당자가 확인해야 GP의 확약이 바뀝니다. GP 명부에 약정이 확정된 뒤에는 취소할 수 없습니다.
           </p>
           <input
             value={reason}

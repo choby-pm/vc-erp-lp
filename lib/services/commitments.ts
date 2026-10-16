@@ -251,16 +251,28 @@ export async function confirmCommitment(orgId: string, userId: string, commitmen
 
 // ─── 선정 취소 (BR-CMT-05) ───────────────────────────────────────────────────
 
-// 결성 대기에서만, 사유 필수. 결성 기한이 지나도 자동으로 취소하지 않는다. GP에는 알리지 않는다 (받을 API가 없음)
+// 결성 대기에서만, 사유 필수. 결성 기한이 지나도 자동으로 취소하지 않는다.
+// 연동 제안이면 저장 뒤 GP에 확약 철회를 통보한다 (L63). GP 확약은 GP 담당자가 확인해야 바뀐다
 export async function cancelCommitment(orgId: string, commitmentId: string, input: CommitmentCancelInput) {
   const c = await getCommitment(orgId, commitmentId);
   if (c.status !== "awaiting_formation") throw new AppError(409, "INVALID_STATE", "결성 대기 중인 출자 건만 선정 취소할 수 있습니다", "BR-CMT-05");
-  const [row] = await sql`
-    update commitments set status = 'cancelled', cancelled_date = ${today()}, cancel_reason = ${input.reason}
-    where id = ${commitmentId} and org_id = ${orgId} and status = 'awaiting_formation'
-    returning id
-  `;
-  if (!row) throw new AppError(409, "CONFLICT", "그 사이 출자 건 상태가 바뀌었습니다. 새로고침 후 다시 시도하세요");
+  // L63: GP 명부에 약정이 확정됐으면 GP 기록과 어긋나므로 막는다 (GP와 명부 변경 협의가 먼저)
+  if ((c.gp_commitment_amount ?? 0) > 0) {
+    throw new AppError(409, "GP_ROSTER_CONFIRMED", "GP 조합원 명부에 약정이 확정되어 선정 취소할 수 없습니다. GP와 명부 변경을 먼저 협의하세요", "BR-CMT-05");
+  }
+  await sql.begin(async (tx) => {
+    const [row] = await tx`
+      update commitments set status = 'cancelled', cancelled_date = ${today()}, cancel_reason = ${input.reason}
+      where id = ${commitmentId} and org_id = ${orgId} and status = 'awaiting_formation'
+      returning id
+    `;
+    if (!row) throw new AppError(409, "CONFLICT", "그 사이 출자 건 상태가 바뀌었습니다. 새로고침 후 다시 시도하세요");
+    // 연동 제안이면 GP에 보낼 응답이 '확약 철회'로 바뀐다 → 보낼 것으로 되돌린다 (BR-SYNC-11)
+    await tx`
+      update proposals set gp_response_sent_at = null, gp_response_error_code = null, gp_response_error = null
+      where org_id = ${orgId} and id = ${c.proposal_id} and data_source = 'gp_api'
+    `;
+  });
   return getCommitment(orgId, commitmentId);
 }
 

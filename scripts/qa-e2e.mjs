@@ -1,7 +1,7 @@
 // GP ↔ LP 업무 흐름 QA (docs/96_qa_scenarios.md). 배포 GP·LP 사이트에 실제로 요청을 보낸다.
 //
 //   npm run qa:e2e              실행 (배포 데모 데이터가 바뀐다)
-//   npm run qa:e2e -- --reset   실행 뒤 짝 맞춘 데모 갱신(GP → LP)으로 처음 상태로 되돌린다
+//   npm run qa:e2e -- --reset   실행 뒤 GP·LP 배포 데모를 데모 원본으로 되돌린다 (scripts/demo-restore.mjs)
 //
 // 시작 상태는 데모 시드 그대로여야 한다 (매일 03:00 초기화 상태). 결과는 ID별 ✓/✕ 와 마지막 요약.
 // Q7-2 준비(분배일을 오늘로)만 GP 데모 DB를 직접 고친다 — GP는 분배일 전 지급을 막기 때문 (../gp/.env.local 의 Neon 값 사용)
@@ -304,13 +304,9 @@ const commitOf = (cwd) => { try { return execSync('git rev-parse --short HEAD', 
 fs.writeFileSync(new URL('../.qa-result.json', import.meta.url), JSON.stringify({ at: new Date().toISOString(), lp: commitOf(new URL('../', import.meta.url)), gp: commitOf(new URL('../../gp/', import.meta.url)), passed, total: results.length, results }, null, 2));
 
 if (process.argv.includes('--reset')) {
-  console.log('\n데모 되돌리기: GP → LP 짝 맞춘 갱신');
-  // node --env-file 은 이미 있는 환경 변수를 덮어쓰지 않는다. LP 값(NEON_API_KEY 등)을 빼고 넘겨야 GP 갱신이 GP 프로젝트를 고친다
-  const lpKeys = Object.keys(readEnv(new URL('../.env.local', import.meta.url)));
-  const gpEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !lpKeys.includes(k)));
-  const gpOut = execSync('npm run db:demo-refresh -- --prune-backups', { cwd: new URL('../../gp/', import.meta.url), env: gpEnv, encoding: 'utf8' });
-  if (!gpOut.includes('✔ 데모 DB를 새로 고쳤습니다')) throw new Error('GP 데모 갱신 실패 — LP 갱신을 하지 않습니다');
-  execSync('npm run db:demo-refresh -- --prune-backups', { encoding: 'utf8' });
+  console.log('\n데모 되돌리기: GP · LP 데모 원본으로 복원');
+  // 데모 원본(demo-seed)으로만 되돌린다. db:demo-refresh 는 개발 DB(main)를 공개 데모에 복사하므로 쓰지 않는다 (2026-10-17)
+  execSync('node scripts/demo-restore.mjs', { cwd: new URL('../', import.meta.url), encoding: 'utf8' });
   console.log('✔ 배포 데모를 처음 상태로 되돌렸습니다');
 }
 process.exitCode = passed === results.length ? 0 : 1;

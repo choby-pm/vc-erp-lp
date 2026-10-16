@@ -1,7 +1,7 @@
 # 00. 제출용 요약 — VC ERP (LP)
 
 > 출자기관(LP)이 **여러 GP의 여러 조합**에 한 출자를 **계획 → 심사·선정 → 약정 → 납입 → 사후관리 → 회수·성과 분석 → 청산**까지 한 시스템에서 처리하는 ERP MVP.
-> 같은 작업 폴더의 GP 시스템([`vc-erp/gp`](../../gp/docs/00_summary.md))과 연동 API·웹훅으로 **양방향** 연결된다. 개인 연구 목적 프로젝트이며 실제 서비스와 무관하다.
+> 같은 작업 폴더의 GP 시스템([`vc-erp/gp`](https://github.com/choby-pm/vc-erp-gp/blob/main/docs/00_summary.md))과 연동 API·웹훅으로 **양방향** 연결된다. 개인 연구 목적 프로젝트이며 실제 서비스와 무관하다.
 
 - 배포: LP <https://vc-erp-lp.vercel.app> · GP <https://vc-erp-gp.vercel.app> (둘 다 데모 전용 DB, 매일 03:00 KST 초기화)
 - 소개 페이지(로그인 없이, 캡처 · 연동 · QA 한 장): <https://vc-erp-lp.vercel.app/intro>

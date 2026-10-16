@@ -1,0 +1,7 @@
+# CLI 배포 때 올리지 않을 로컬 전용 파일 (계정 비밀번호·QA 결과·AI 도구 자료·환경 변수)
+demo-accounts.md
+.qa-result.json
+.env*
+.agents/
+.claude/
+skills-lock.json

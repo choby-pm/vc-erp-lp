@@ -1,0 +1,105 @@
+{
+  "fund_id": "7f21ebaf-b7db-4d67-aeaa-792557c3af4c",
+  "commitment_id": "e9d3585c-e196-4511-afc9-c0752273915b",
+  "investment_id": "9e84b588-827b-470a-b089-db30303a7005",
+  "as_of": "2026-10-16",
+  "checks": [
+    "집행 원금 초과 차단",
+    "오래된 판정 차단",
+    "동일 거래 복수 의무",
+    "GP·LP 동일 응답",
+    "개인정보·내부필드 제외",
+    "타 기관 404",
+    "잘못된 날짜 400"
+  ],
+  "snapshot": {
+    "as_of": "2026-10-16",
+    "policy_version": 1,
+    "obligations": [
+      {
+        "id": "980be5f7-2e37-4f5e-80c2-2177efd3e25d",
+        "obligation_key": "d85cb1f5-46be-4b1e-9a58-03ad4e74c67d",
+        "version": 1,
+        "terms_id": "a6280dda-ba6b-4e70-9a58-f6d626e46cba",
+        "terms_version": 1,
+        "name": "W03 데모 · 기술기업 최소 투자",
+        "measure": "commitment_ratio",
+        "direction": "minimum",
+        "threshold": 2000,
+        "period_start": "2025-01-01",
+        "period_end": "2028-12-31",
+        "effective_date": "2025-03-14",
+        "clause_reference": "검증용 가상 규약 제1조",
+        "clause_text": "W03 기능 검증을 위한 가상 조항입니다. 실제 조합 규약이 아닙니다.",
+        "change_reason": "로컬 W03 데모 근거·복수 의무 검증",
+        "policy_version": 1,
+        "recognized_amount": 600000000,
+        "denominator_amount": 15000000000,
+        "actual_ratio": 0.04,
+        "target_amount": 3000000000,
+        "attainment_ratio": 0.2,
+        "remaining_amount": 2400000000,
+        "period_state": "during",
+        "result": "in_progress",
+        "recognitions": [
+          {
+            "id": "d656a1ac-77c9-4bf6-a8a2-4968a262b5fa",
+            "obligation_id": "980be5f7-2e37-4f5e-80c2-2177efd3e25d",
+            "investment_id": "9e84b588-827b-470a-b089-db30303a7005",
+            "company_name": "코드브릿지",
+            "investment_date": "2025-04-14",
+            "recognized_amount": 600000000,
+            "decision": "recognized",
+            "public_reason": "가상 데모 조항에 해당한다고 담당자 수동 판정 · 검증용",
+            "retroactive": false,
+            "previous_id": "aa1a71df-daf7-4d4f-877b-ade6ada54dbe",
+            "decided_at": "2026-10-16T14:56:10.468Z",
+            "current": true
+          }
+        ]
+      },
+      {
+        "id": "3f2ceb52-60b0-4a76-90dc-ebd45a3f06b8",
+        "obligation_key": "e78f0901-58f1-4d57-8bef-f5e89ba66337",
+        "version": 1,
+        "terms_id": "a6280dda-ba6b-4e70-9a58-f6d626e46cba",
+        "terms_version": 1,
+        "name": "W03 데모 · 집중투자 한도",
+        "measure": "amount",
+        "direction": "maximum",
+        "threshold": 500000000,
+        "period_start": "2025-01-01",
+        "period_end": "2027-12-31",
+        "effective_date": "2025-03-14",
+        "clause_reference": "검증용 가상 규약 제1조",
+        "clause_text": "W03 기능 검증을 위한 가상 조항입니다. 실제 조합 규약이 아닙니다.",
+        "change_reason": "로컬 W03 데모 근거·복수 의무 검증",
+        "policy_version": 1,
+        "recognized_amount": 600000000,
+        "denominator_amount": null,
+        "actual_ratio": null,
+        "target_amount": 500000000,
+        "attainment_ratio": null,
+        "remaining_amount": -100000000,
+        "period_state": "during",
+        "result": "exceeded",
+        "recognitions": [
+          {
+            "id": "85bd4648-ed9f-4c6e-9383-eca9dbca0df7",
+            "obligation_id": "3f2ceb52-60b0-4a76-90dc-ebd45a3f06b8",
+            "investment_id": "9e84b588-827b-470a-b089-db30303a7005",
+            "company_name": "코드브릿지",
+            "investment_date": "2025-04-14",
+            "recognized_amount": 600000000,
+            "decision": "recognized",
+            "public_reason": "W03 로컬 브라우저 검증: 취소 후 재인정 · 가상 데모",
+            "retroactive": false,
+            "previous_id": "82f600cb-b826-40db-b257-4dac969eaff0",
+            "decided_at": "2026-10-16T14:55:45.823Z",
+            "current": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import InvestmentObligations from "@/components/investment-obligations";
+import { obligationSnapshotSchema } from "@/lib/schemas/obligations";
 import { CheckForm, ReviewButton } from "@/components/report-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/format";
@@ -23,6 +25,7 @@ export default async function ReportDetailPage(props: PageProps<"/reports/[repor
   const s = (r.snapshot ?? {}) as Snapshot;
   const t = s.totals ?? {};
   const linked = r.data_source === "gp_api";
+  const obligations = obligationSnapshotSchema.safeParse(r.snapshot?.investment_obligations);
 
   const cards: [string, string][] = [
     ["기준일", formatDate(r.period_end)],
@@ -119,6 +122,8 @@ export default async function ReportDetailPage(props: PageProps<"/reports/[repor
           )}
         </section>
       )}
+
+      {linked && <section className="rounded-xl border bg-white p-5 space-y-3"><h2 className="font-semibold">발행 당시 투자 의무 근거</h2>{obligations.success ? <InvestmentObligations snapshot={obligations.data}/> : <p className="text-sm text-slate-500">이 보고에는 복수 의무 스냅샷이 없습니다. 과거 보고의 근거를 소급 생성하지 않습니다.</p>}</section>}
 
       {(r.gp_comment || r.attachments.length > 0) && (
         <section className="space-y-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm">

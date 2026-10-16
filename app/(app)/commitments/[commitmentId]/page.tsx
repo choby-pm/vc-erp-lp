@@ -105,6 +105,8 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
       </div>
 
 
+      {linked && <Link href={`/commitments/${commitmentId}/obligations${asOf ? `?as_of=${asOf}` : ""}`} className="inline-block text-sm font-medium text-emerald-700 hover:underline">투자 의무 · 규약과 거래별 인정 근거 확인 →</Link>}
+
       {c.origin === "selection" ? (
         <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm">
           <h2 className="font-semibold text-slate-900">선정 조건</h2>

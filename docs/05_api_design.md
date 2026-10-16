@@ -1,5 +1,7 @@
 # 05. API 설계 (확정)
 
+W03 추가: `GET /api/v1/commitments/{commitment_id}/obligations?as_of=YYYY-MM-DD`. 세션 기관의 출자 건과 GP 연결을 검사한 뒤 GP의 공개 DTO를 읽기 전용 조회한다. 오류: 날짜400, 타 기관404, 미연동409, GP 실패503/업무 거절409. 응답은 `{ snapshot, received_at, source: "gp_live" }`. [설계·검증](101_investment_obligations.md).
+
 > 기준 문서: [03 DB 설계](03_db_design.md), [04 비즈니스 규칙](04_business_rules.md), [99 결정 기록](99_decisions.md)
 >
 > API는 **화면(또는 다른 시스템)이 서버에 일을 시키는 창구**다.

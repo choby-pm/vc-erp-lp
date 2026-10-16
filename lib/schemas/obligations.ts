@@ -1,0 +1,58 @@
+import { z } from "zod";
+const amount = z.number().int().safe();
+const recognition = z.object({
+  id: z.uuid(),
+  obligation_id: z.uuid(),
+  investment_id: z.uuid(),
+  company_name: z.string(),
+  investment_date: z.iso.date(),
+  recognized_amount: amount.nonnegative(),
+  decision: z.enum(["recognized", "cancelled"]),
+  public_reason: z.string(),
+  retroactive: z.boolean(),
+  previous_id: z.uuid().nullable(),
+  decided_at: z.string(),
+  current: z.boolean(),
+});
+export const obligationSnapshotSchema = z.object({
+  as_of: z.iso.date(),
+  policy_version: z.literal(1),
+  obligations: z.array(
+    z.object({
+      id: z.uuid(),
+      obligation_key: z.uuid(),
+      version: z.number().int(),
+      terms_id: z.uuid(),
+      terms_version: z.number().int(),
+      name: z.string(),
+      measure: z.enum(["amount", "commitment_ratio"]),
+      direction: z.enum(["minimum", "maximum"]),
+      threshold: amount,
+      period_start: z.iso.date(),
+      period_end: z.iso.date(),
+      effective_date: z.iso.date(),
+      clause_reference: z.string(),
+      clause_text: z.string(),
+      change_reason: z.string(),
+      policy_version: z.literal(1),
+      recognized_amount: amount,
+      denominator_amount: amount.nullable(),
+      actual_ratio: z.number().nullable(),
+      target_amount: amount,
+      attainment_ratio: z.number().nullable(),
+      remaining_amount: amount,
+      period_state: z.enum(["before", "during", "after"]),
+      result: z.enum([
+        "not_started",
+        "in_progress",
+        "met",
+        "shortfall",
+        "within_limit",
+        "exceeded",
+        "no_denominator",
+      ]),
+      recognitions: z.array(recognition),
+    }),
+  ),
+});
+export type ObligationSnapshot = z.infer<typeof obligationSnapshotSchema>;

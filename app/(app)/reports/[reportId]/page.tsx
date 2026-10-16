@@ -83,7 +83,7 @@ export default async function ReportDetailPage(props: PageProps<"/reports/[repor
 
       {r.superseded_at && (
         <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          같은 기간의 정정 보고가 들어와 이 보고는 대체됐습니다 ({formatDateTime(r.superseded_at)}). 평가액·점검·보고 기한 판정에는 정정 보고를 씁니다 (BR-RPT-05).
+          같은 기간의 정정 보고가 들어와 이 보고는 대체됐습니다 ({formatDateTime(r.superseded_at)}). 평가액·점검·보고 기한 판정에는 정정 보고를 씁니다.
         </p>
       )}
 
@@ -167,7 +167,7 @@ export default async function ReportDetailPage(props: PageProps<"/reports/[repor
           {canWrite && r.primary_purpose_min_ratio !== null && !r.superseded_at && <CheckForm reportId={r.id} linked={linked} />}
         </div>
         <p className="text-xs text-slate-500">
-          투자 기간{r.investment_period_end ? `(${formatDate(r.investment_period_end)}까지)` : ""} 중 보고의 미달은 참고로만 봅니다. 의무 비율은 보통 투자 기간이 끝날 때 채우면 되기 때문입니다 (L34).
+          투자 기간{r.investment_period_end ? `(${formatDate(r.investment_period_end)}까지)` : ""} 중 보고의 미달은 참고로만 봅니다. 의무 비율은 보통 투자 기간이 끝날 때 채우면 되기 때문입니다.
         </p>
         {r.checks.length === 0 ? (
           <p className="py-3 text-center text-sm text-slate-400">{r.primary_purpose_min_ratio === null ? "이 조합에는 점검할 의무 비율이 없습니다." : "점검 기록이 없습니다."}</p>

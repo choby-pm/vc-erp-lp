@@ -49,7 +49,7 @@ export default async function MeetingDetailPage(props: PageProps<"/meetings/[mee
 
       {m.submit_status === "failed" && (
         <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          GP가 투표 제출을 거부했습니다 ({formatDateTime(m.vote_submit_attempted_at)}): {m.vote_submit_error}. 이미 투표가 닫혔다면 GP 담당자와 확인하세요 (BR-VOTE-06).
+          GP가 투표 제출을 거부했습니다 ({formatDateTime(m.vote_submit_attempted_at)}): {m.vote_submit_error}. 이미 투표가 닫혔다면 GP 담당자와 확인하세요.
         </p>
       )}
       {m.submit_status === "approved_unsent" && linked && m.vote_submit_error && (
@@ -58,7 +58,7 @@ export default async function MeetingDetailPage(props: PageProps<"/meetings/[mee
         </p>
       )}
       {m.latest_approval?.status === "approved" && !m.latest_approval.approved_matches && m.submit_status !== "submitted" && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">승인된 결재 뒤에 찬반이 바뀌었습니다. 제출하려면 다시 기안하세요 (BR-VOTE-05).</p>
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">승인된 결재 뒤에 찬반이 바뀌었습니다. 제출하려면 다시 기안하세요.</p>
       )}
 
       <VotePanel meeting={m} canWrite={canWrite} />

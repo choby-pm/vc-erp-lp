@@ -198,7 +198,7 @@ export default function EvaluationPanel({
           </table>
         </div>
       )}
-      <p className="border-t border-slate-100 px-5 py-2 text-xs text-slate-400">점수는 판단 자료입니다. 점수로 자동 선정·탈락하지 않습니다 (BR-EVAL-05).</p>
+      <p className="border-t border-slate-100 px-5 py-2 text-xs text-slate-400">점수는 판단 자료입니다. 점수로 자동 선정·탈락하지 않습니다.</p>
     </section>
   );
 }

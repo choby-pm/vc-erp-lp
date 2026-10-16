@@ -67,7 +67,7 @@ export default async function CapitalCallDetailPage(props: PageProps<"/capital-c
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-900">
-            납입 <span className="font-normal text-slate-500">· 기안 → 결재 → 송금 완료. 나눠 낼 수 있습니다 (L9)</span>
+            납입 <span className="font-normal text-slate-500">· 기안 → 결재 → 송금 완료. 나눠 낼 수 있습니다</span>
           </h2>
           {canWrite && !c.cancelled_at && <NewPaymentForm callId={c.id} left={left} />}
         </div>

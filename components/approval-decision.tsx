@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 // 결재 승인 · 반려 (R2-4, BR-APR-05~07). 승인은 Idempotency-Key 로 두 번 눌러도 한 번만 처리된다
-export default function ApprovalDecision({ approvalId }: { approvalId: string }) {
+export default function ApprovalDecision({ approvalId,context,effect }: { approvalId: string;context:string;effect:string }) {
   const router = useRouter();
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +17,7 @@ export default function ApprovalDecision({ approvalId }: { approvalId: string })
       setError("반려 사유를 입력하세요");
       return;
     }
-    if (!confirm(kind === "approve" ? "승인할까요? 승인하면 되돌릴 수 없습니다." : "반려할까요?")) return;
+    if (!confirm(`${context}\n${kind==="approve"?effect:"반려하면 기안자가 사유를 확인하고 다시 기안해야 합니다."}\n${kind==="approve"?"승인":"반려"}할까요?`)) return;
     setPending(kind);
     setError(null);
     const res = await fetch(`/api/v1/approvals/${approvalId}/${kind}`, {
@@ -38,6 +38,8 @@ export default function ApprovalDecision({ approvalId }: { approvalId: string })
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-slate-900">결재</h2>
+      <p className="mt-2 text-sm text-slate-600">{context}</p>
+      <p className="mt-1 text-xs text-slate-500">{effect}</p>
       <label className="mt-3 block">
         <span className="text-xs font-medium text-slate-600">의견 (반려할 때는 필수)</span>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />

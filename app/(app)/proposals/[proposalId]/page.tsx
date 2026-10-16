@@ -158,7 +158,7 @@ export default async function ProposalDetailPage(props: PageProps<"/proposals/[p
 
       {p.pending_approval && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          선정 결재 대기 중입니다. 결재가 끝날 때까지 심사 단계·선정 조건을 바꿀 수 없습니다 (BR-APR-03).
+          선정 결재 대기 중입니다. 결재가 끝날 때까지 심사 단계·선정 조건을 바꿀 수 없습니다.
         </p>
       )}
       {commitment && (

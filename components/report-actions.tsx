@@ -121,7 +121,7 @@ export function NewReportForm({ fundId }: { fundId: string }) {
   const field = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs text-slate-600">GP에게서 받은 보고서의 숫자를 입력합니다. 보고서 PDF 올리기는 고도화입니다 (L36).</p>
+      <p className="text-xs text-slate-600">GP에게서 받은 보고서의 숫자를 입력합니다. 보고서 PDF 올리기는 고도화입니다.</p>
       <div className="grid gap-3 sm:grid-cols-4">
         <label className="block text-xs font-medium text-slate-600">
           보고 종류

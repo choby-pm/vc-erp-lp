@@ -28,7 +28,7 @@ export default async function CashPlanPage(props: PageProps<"/cash-plan">) {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">자금 계획</h1>
         <p className="mt-1 text-sm text-slate-500">
-          앞으로 출자금이 언제 얼마나 필요한지. 받은 캐피탈콜의 미납은 <b>확정</b>, 아직 요청받지 않은 약정은 투자 기간 끝까지 매달 똑같이 나눈 <b>추정</b>입니다 ⚠️ 단순화한 추정 (L29).
+          앞으로 출자금이 언제 얼마나 필요한지. 받은 캐피탈콜의 미납은 <b>확정</b>, 아직 요청받지 않은 약정은 투자 기간 끝까지 매달 똑같이 나눈 <b>추정</b>입니다 ⚠️ 단순화한 추정.
         </p>
       </div>
 

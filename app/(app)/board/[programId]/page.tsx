@@ -73,7 +73,7 @@ export default async function BoardProgramPage(props: PageProps<"/board/[program
         <h2 className="text-sm font-semibold text-slate-900">지원 방법</h2>
         <ul className="mt-2 space-y-1.5 text-sm text-slate-600">
           <li>
-            <b className="text-slate-800">이 서비스와 연동된 GP</b> — GP ERP의 &ldquo;출자사업 공고&rdquo;에서 조합을 골라 바로 지원합니다. 접수 기간은 이 기관이 지원을 받은 시각으로 봅니다 (L54).
+            <b className="text-slate-800">이 서비스와 연동된 GP</b> — GP ERP의 &ldquo;출자사업 공고&rdquo;에서 조합을 골라 바로 지원합니다. 접수 기간은 이 기관이 지원을 받은 시각으로 봅니다.
           </li>
           <li>
             <b className="text-slate-800">연동되지 않은 GP</b> — {p.apply_guide ?? "이 기관이 접수 방법을 적지 않았습니다. 기관에 직접 문의하세요."}

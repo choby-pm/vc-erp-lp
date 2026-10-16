@@ -88,7 +88,7 @@ export default function ProposalActions({ proposalId, status, isManual }: { prop
           {pending ? "처리하는 중…" : mode === "move" ? "단계 옮기기" : mode === "reject" ? "탈락 처리" : "철회 처리"}
         </button>
       </div>
-      <p className="mt-3 text-xs text-slate-500">선정은 선정 조건을 작성하고 선정 결재가 승인되면 됩니다 (R2-4).</p>
+      <p className="mt-3 text-xs text-slate-500">선정은 선정 조건을 작성하고 선정 결재가 승인되면 됩니다.</p>
       {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
     </section>
   );

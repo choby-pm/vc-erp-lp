@@ -114,7 +114,7 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
         <section className="flex items-start justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <div>
             <h2 className="text-base font-semibold text-amber-900">GP에 보내지 못한 통지 확인 {unsentAcks.length}건</h2>
-            <p className="mt-1 text-xs text-amber-800">{unsentAcks.slice(0, 5).map((a) => a.title).join(" · ")}{unsentAcks.length > 5 ? " …" : ""} — 주기 작업이 다시 보냅니다 (BR-SYNC-11).</p>
+            <p className="mt-1 text-xs text-amber-800">{unsentAcks.slice(0, 5).map((a) => a.title).join(" · ")}{unsentAcks.length > 5 ? " …" : ""} — 주기 작업이 다시 보냅니다.</p>
           </div>
           {unsent.length === 0 && <SendPendingButton />}
         </section>

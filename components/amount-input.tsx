@@ -23,7 +23,7 @@ export default function AmountInput({
         }`}
         {...props}
       />
-      {amount > 0 && <p className="mt-1 text-right text-xs text-slate-500">= {formatKRW(amount)}</p>}
+      <p className="mt-1 text-right text-xs text-slate-500">단위: 원{amount > 0 && <> · = {formatKRW(amount)}</>}</p>
     </>
   );
 }

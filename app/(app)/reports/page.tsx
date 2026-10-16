@@ -17,7 +17,7 @@ export default async function ReportsPage(props: PageProps<"/reports">) {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">GP 보고</h1>
         <p className="mt-1 text-sm text-slate-500">
-          GP가 보낸 정기 보고. 읽고 검토 완료를 표시합니다. 주목적 투자 비율로 약정 조건을 점검합니다 — 투자 기간 중 미달은 참고로만 봅니다 (L34).
+          GP가 보낸 정기 보고. 읽고 검토 완료를 표시합니다. 주목적 투자 비율로 약정 조건을 점검합니다 — 투자 기간 중 미달은 참고로만 봅니다.
         </p>
       </div>
       <div className="flex gap-2">

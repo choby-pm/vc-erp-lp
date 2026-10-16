@@ -82,7 +82,7 @@ export default async function PerformancePage(props: PageProps<"/performance">) 
 
       {t.nav_missing_count > 0 && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          보고가 없어 평가액을 0으로 계산한 출자 건이 {t.nav_missing_count}건 있습니다. 납입한 돈의 가치를 0으로 보므로 TVPI·IRR이 실제보다 낮게 나옵니다 (BR-PERF-02). 출자 건별 표에서 &ldquo;평가액 없음&rdquo;을 확인하세요.
+          보고가 없어 평가액을 0으로 계산한 출자 건이 {t.nav_missing_count}건 있습니다. 납입한 돈의 가치를 0으로 보므로 TVPI·IRR이 실제보다 낮게 나옵니다. 출자 건별 표에서 &ldquo;평가액 없음&rdquo;을 확인하세요.
         </p>
       )}
 
@@ -168,7 +168,7 @@ export default async function PerformancePage(props: PageProps<"/performance">) 
           </div>
         )}
       </section>
-      <p className="text-xs text-slate-400">IRR에 마우스를 올리면 계산하지 않은 이유가 보입니다. 결성 대기·선정 취소 출자 건은 뺍니다 (BR-PERF-06). 차트는 R7 대시보드에서 (L42).</p>
+      <p className="text-xs text-slate-400">IRR에 마우스를 올리면 계산하지 않은 이유가 보입니다. 결성 대기·선정 취소 출자 건은 뺍니다. 차트는 R7 대시보드에서.</p>
     </div>
   );
 }

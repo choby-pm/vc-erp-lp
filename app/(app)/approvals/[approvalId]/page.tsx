@@ -47,10 +47,11 @@ type PaymentSnapshot = {
 export default async function ApprovalDetailPage(props: PageProps<"/approvals/[approvalId]">) {
   const { approvalId } = await props.params;
   const me = (await getCurrentUser())!;
+
   const a = await loadOrNotFound(() => getApproval(me.org_id, approvalId));
   const canDecide = a.status === "pending" && (me.role === "approver" || me.role === "admin") && a.requested_by !== me.id;
-  if (a.target_type === "payment") return <PaymentApproval a={a} me={me} canDecide={canDecide} />;
-  if (a.target_type === "vote") return <VoteApproval a={a} me={me} canDecide={canDecide} />;
+  if (a.target_type === "payment") return <PaymentApproval a={a} me={me} canDecide={canDecide} orgName={me.org_name} />;
+  if (a.target_type === "vote") return <VoteApproval a={a} me={me} canDecide={canDecide} orgName={me.org_name} />;
   const s = a.snapshot as SelectionSnapshot;
   // 결재 대기 중이면 지금 기준으로 다시 점검해 보여준다 (기안 뒤 다른 선정이 먼저 승인됐을 수 있다)
   const now = a.status === "pending" && a.target_type === "selection" ? await selectionCheck(me.org_id, a.target_id) : null;
@@ -121,7 +122,7 @@ export default async function ApprovalDetailPage(props: PageProps<"/approvals/[a
         <section className={`rounded-xl border px-4 py-3 text-sm ${nowBudget?.ok !== false && nowTrack?.ok !== false ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}>
           <b>지금 기준 재점검</b> — {nowBudget && `예산: ${nowBudget.ok ? "통과" : "초과"} (${nowBudget.message})`}
           {nowTrack && ` · 부문: ${nowTrack.ok ? "통과" : "초과"} (${nowTrack.message})`}
-          <span className="block text-xs opacity-80">승인할 때 이 기준으로 다시 검사합니다. 초과면 승인되지 않습니다 (BR-SEL-03).</span>
+          <span className="block text-xs opacity-80">승인할 때 이 기준으로 다시 검사합니다. 초과면 승인되지 않습니다.</span>
         </section>
       )}
 
@@ -131,14 +132,14 @@ export default async function ApprovalDetailPage(props: PageProps<"/approvals/[a
           {a.decision_comment && <p className="mt-1 text-slate-600">{a.decision_comment}</p>}
         </section>
       )}
-      {canDecide && <ApprovalDecision approvalId={a.id} />}
-      {a.status === "pending" && a.requested_by === me.id && <p className="text-sm text-slate-500">본인이 올린 결재라 결재할 수 없습니다 (BR-APR-05).</p>}
+      {canDecide && <ApprovalDecision approvalId={a.id} context={`${me.org_name} · ${s.proposal.gp_name} · ${s.proposal.fund_name} · 출자 예정 ${formatKRW(s.terms.planned_amount)}`} effect="승인하면 선정 출자 건과 예산 사용액이 기록됩니다. 실제 송금은 별도 납입 결재·송금 기록으로 진행합니다."/>}
+      {a.status === "pending" && a.requested_by === me.id && <p className="text-sm text-slate-500">본인이 올린 결재라 결재할 수 없습니다.</p>}
     </div>
   );
 }
 
 // 납입 결재 (R4-2): 기안 시점의 캐피탈콜·납입 스냅샷. 승인하면 송금 대기, 반려하면 끝 (BR-PAY-01)
-async function PaymentApproval({ a, me, canDecide }: { a: Awaited<ReturnType<typeof getApproval>>; me: { id: string }; canDecide: boolean }) {
+async function PaymentApproval({ a, me, canDecide,orgName }: { a: Awaited<ReturnType<typeof getApproval>>; me: { id: string }; canDecide: boolean;orgName:string }) {
   const s = a.snapshot as PaymentSnapshot;
   const cc = s.capital_call;
   const [payment] = await sql<{ capital_call_id: string; status: string }[]>`select capital_call_id, status from payments where id = ${a.target_id}`;
@@ -195,8 +196,8 @@ async function PaymentApproval({ a, me, canDecide }: { a: Awaited<ReturnType<typ
           {a.decision_comment && <p className="mt-1 text-slate-600">{a.decision_comment}</p>}
         </section>
       )}
-      {canDecide && <ApprovalDecision approvalId={a.id} />}
-      {a.status === "pending" && a.requested_by === me.id && <p className="text-sm text-slate-500">본인이 올린 결재라 결재할 수 없습니다 (BR-APR-05).</p>}
+      {canDecide && <ApprovalDecision approvalId={a.id} context={`${orgName} · ${cc.gp_name} · ${cc.fund_name} · ${cc.call_no}회 · 납입 ${formatKRW(s.payment.amount)}`} effect="승인하면 송금 대기가 됩니다. 실제 은행 송금은 수행하지 않습니다. 송금 후 담당자가 완료 기록을 남기며, 송금 전 취소와 송금 후 취소 행을 통한 정정이 가능합니다."/>}
+      {a.status === "pending" && a.requested_by === me.id && <p className="text-sm text-slate-500">본인이 올린 결재라 결재할 수 없습니다.</p>}
     </div>
   );
 }
@@ -207,7 +208,7 @@ type VoteSnapshot = {
 };
 
 // 투표 결재 (R5-3): 기안 시점의 안건·찬반·검토 의견. 승인되면 연동 총회는 GP에 바로 제출 (BR-VOTE-04)
-function VoteApproval({ a, me, canDecide }: { a: Awaited<ReturnType<typeof getApproval>>; me: { id: string }; canDecide: boolean }) {
+function VoteApproval({ a, me, canDecide,orgName }: { a: Awaited<ReturnType<typeof getApproval>>; me: { id: string }; canDecide: boolean;orgName:string }) {
   const s = a.snapshot as VoteSnapshot;
   return (
     <div className="space-y-6">
@@ -256,8 +257,8 @@ function VoteApproval({ a, me, canDecide }: { a: Awaited<ReturnType<typeof getAp
           {a.decision_comment && <p className="mt-1 text-slate-600">{a.decision_comment}</p>}
         </section>
       )}
-      {canDecide && <ApprovalDecision approvalId={a.id} />}
-      {a.status === "pending" && a.requested_by === me.id && <p className="text-sm text-slate-500">본인이 올린 결재라 결재할 수 없습니다 (BR-APR-05).</p>}
+      {canDecide && <ApprovalDecision approvalId={a.id} context={`${orgName} · ${s.meeting.gp_name} · ${s.meeting.fund_name} · 총회 ${formatDate(s.meeting.meeting_date)} · ${s.votes.length}개 안건`} effect="승인하면 확정한 안건별 의사를 GP에 제출합니다. 기한·총회 상태는 제출 시 다시 검사하며 통신 장애는 재전송 대상으로 남습니다."/>}
+      {a.status === "pending" && a.requested_by === me.id && <p className="text-sm text-slate-500">본인이 올린 결재라 결재할 수 없습니다.</p>}
     </div>
   );
 }

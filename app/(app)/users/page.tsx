@@ -41,6 +41,7 @@ export default async function UsersPage() {
               <tr key={u.id} className={u.disabled_at ? "text-slate-400" : ""}>
                 <td className="px-4 py-3 font-semibold text-slate-900">
                   {u.name}
+                  {u.disabled_at&&<span className="ml-2 rounded bg-rose-50 px-1.5 py-0.5 text-xs text-rose-700">로그인 중지 · 이력 보존</span>}
                   {u.id === me.id && <span className="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">나</span>}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-600">{u.email}</td>

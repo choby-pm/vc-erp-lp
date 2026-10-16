@@ -82,7 +82,7 @@ function AdjustForm({ commitmentId, current, suggested }: { commitmentId: string
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
       <p className="text-xs text-slate-600">
-        지금 약정 {formatKRW(current)}을 취소 행으로 지우고 새 금액을 넣습니다 (BR-CMT-06).
+        지금 약정 {formatKRW(current)}을 취소 행으로 지우고 새 금액을 넣습니다.
         {suggested !== null && suggested !== current && ` GP 원장 사본의 약정은 ${formatKRW(suggested)}입니다.`}
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -188,7 +188,7 @@ export default function CommitmentLedger({
                 {t.recon?.recon_status === "mismatched" && (
                   <p className="mt-1 text-xs text-slate-500">
                     차이 {formatKRW(t.recon.our_amount - t.recon.gp_amount)}
-                    {t.recon.waiting ? " · 생긴 지 7일 안이라 확인 대기 (BR-REC-04)" : ""}
+                    {t.recon.waiting ? " · 생긴 지 7일 안이라 확인 대기" : ""}
                   </p>
                 )}
                 {t.recon?.recon_status === "resolved" && t.recon.resolution_memo && <p className="mt-1 text-xs text-slate-500">확인: {t.recon.resolution_memo}</p>}

@@ -111,7 +111,7 @@ export function ProgramForm({
             placeholder="예: 제안서와 운용 계획서를 접수 기간 안에 출자사업 담당 메일로 보내 주세요. 연동 GP는 GP ERP에서 바로 지원할 수 있습니다."
             className={inputClass}
           />
-          <p className="mt-1 text-xs text-slate-500">공고하면 공고 게시판에 보입니다. 이 서비스와 연동되지 않은 GP는 이 안내대로 지원합니다 (L51)</p>
+          <p className="mt-1 text-xs text-slate-500">공고하면 공고 게시판에 보입니다. 이 서비스와 연동되지 않은 GP는 이 안내대로 지원합니다</p>
           {errors.apply_guide && <p className="mt-1 text-xs text-red-600">{errors.apply_guide}</p>}
         </label>
       </div>
@@ -125,7 +125,7 @@ export function ProgramForm({
   );
 }
 
-const emptyTrack = { name: "", strategy: "early" as Strategy, planned_amount: "", target_gp_count: "", min_fund_size_amount: "", max_commitment_ratio: "" };
+const emptyTrack = { name: "", strategy: "" as Strategy, planned_amount: "", target_gp_count: "", min_fund_size_amount: "", max_commitment_ratio: "" };
 
 function TrackRowForm({ programId, track, onDone }: { programId: string; track?: Track; onDone: () => void }) {
   const router = useRouter();
@@ -155,6 +155,7 @@ function TrackRowForm({ programId, track, onDone }: { programId: string; track?:
           <label className="block">
             <span className="text-xs font-medium text-slate-600">분야</span>
             <select value={v.strategy} onChange={(e) => setV({ ...v, strategy: e.target.value as Strategy })} className={inputClass}>
+              <option value="" disabled>부문에 맞는 분야를 선택하세요</option>
               {STRATEGIES.map((s) => (
                 <option key={s} value={s}>
                   {STRATEGY_LABEL[s]}
@@ -188,6 +189,7 @@ function TrackRowForm({ programId, track, onDone }: { programId: string; track?:
             type="button"
             disabled={pending}
             onClick={async () => {
+              if(!v.strategy){setError("부문에 맞는 분야를 선택하세요");return;}
               setPending(true);
               setError(null);
               try {

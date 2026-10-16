@@ -127,7 +127,7 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
         </section>
       ) : (
         <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          이 시스템을 쓰기 전에 이미 출자한 연동 조합이라 제안·선정 조건이 없습니다. GP 약정으로 결성 확인합니다 (L19).
+          이 시스템을 쓰기 전에 이미 출자한 연동 조합이라 제안·선정 조건이 없습니다. GP 약정으로 결성 확인합니다.
         </p>
       )}
 
@@ -173,7 +173,7 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
               </div>
             ))}
           </dl>
-          <p className="mt-2 text-xs text-slate-500">청산 확인된 출자 건은 잠겨 있어 납입·분배·약정 변경·보고 기록을 더하지 않습니다 (BR-CLOSE-02).</p>
+          <p className="mt-2 text-xs text-slate-500">청산 확인된 출자 건은 잠겨 있어 납입·분배·약정 변경·보고 기록을 더하지 않습니다.</p>
         </section>
       )}
 

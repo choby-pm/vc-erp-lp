@@ -30,6 +30,8 @@ export type CapitalCallItem = {
   gp_payment_status: string | null;
   gp_paid_amount: number | null;
   cancelled_at: Date | null;
+  gp_cancelled_at: Date | null; // GP가 취소함 (L64). 우리 취소는 담당자 확인 후 cancelled_at
+  gp_cancel_reason: string | null;
   paid_amount: number; // 우리 송금 완료 합계
   pending_amount: number; // 결재 대기 + 송금 대기
   payment_status: CallPaymentStatus; // 우리 쪽 납입 상태 (계산값)
@@ -38,7 +40,7 @@ export type CapitalCallItem = {
 
 const listQuery = (db: Db, orgId: string) => db`
   select c.id, c.commitment_id, m.fund_id, f.name as fund_name, g.name as gp_name, c.call_no, c.is_initial, c.call_date, c.due_date,
-         c.call_amount, c.purpose, c.data_source, c.gp_payment_status, c.gp_paid_amount, c.cancelled_at,
+         c.call_amount, c.purpose, c.data_source, c.gp_payment_status, c.gp_paid_amount, c.cancelled_at, c.gp_cancelled_at, c.gp_cancel_reason,
          s.paid_amount, s.pending_amount,
          case when c.cancelled_at is null and s.payment_status <> 'paid' and ${today()}::date > c.due_date then 'overdue' else s.payment_status end as payment_status,
          (c.data_source = 'gp_api' and sm.called_amount > sm.commitment_amount and sm.commitment_amount > 0) as over_commitment
@@ -105,20 +107,20 @@ export async function createManualCall(orgId: string, userId: string, commitment
   return getCapitalCall(orgId, id);
 }
 
-// 수기 캐피탈콜 취소: 송금한 납입이 있으면 불가. 송금 대기 납입은 함께 취소 (BR-CALL-04).
+// 캐피탈콜 취소: 수기 콜, 또는 GP가 취소한 연동 콜의 취소 확인 (L64). 송금한 납입이 있으면 불가. 송금 대기 납입은 함께 취소 (BR-CALL-04).
 // 결재 대기 납입이 있으면 불가 — 결재권자가 먼저 반려한다 (기안 취소 없음 BR-APR-08, L31)
-export async function cancelManualCall(orgId: string, callId: string) {
+export async function cancelManualCall(orgId: string, callId: string, userId: string) {
   await sql.begin(async (tx) => {
     const t = tx as unknown as Db;
     const c = await getCapitalCall(orgId, callId, t);
     await tx`select id from capital_calls where id = ${callId} for update`;
-    if (c.data_source === "gp_api") throw new AppError(409, "GP_MANAGED_FIELD", "연동 캐피탈콜은 GP에서만 취소할 수 있습니다", "BR-CALL-04");
+    if (c.data_source === "gp_api" && !c.gp_cancelled_at) throw new AppError(409, "GP_MANAGED_FIELD", "연동 캐피탈콜은 GP가 취소한 뒤에 취소를 확인할 수 있습니다", "BR-CALL-04");
     if (c.cancelled_at) throw new AppError(409, "INVALID_STATE", "이미 취소된 캐피탈콜입니다", "BR-CALL-04");
-    if (c.paid_amount > 0) throw new AppError(409, "CALL_HAS_PAYMENTS", "이미 송금한 납입이 있어 취소할 수 없습니다. 송금 기록을 먼저 정정하세요", "BR-CALL-04");
+    if (c.paid_amount > 0) throw new AppError(409, "CALL_HAS_PAYMENTS", c.gp_cancelled_at ? "이미 송금한 납입이 있어 취소를 확인할 수 없습니다. GP와 반환·정정 방법을 협의하세요" : "이미 송금한 납입이 있어 취소할 수 없습니다. 송금 기록을 먼저 정정하세요", "BR-CALL-04");
     const [requested] = await tx`select 1 from payments where capital_call_id = ${callId} and status = 'requested'`;
     if (requested) throw new AppError(409, "APPROVAL_PENDING", "결재 대기 중인 납입이 있어 취소할 수 없습니다. 결재권자가 먼저 반려하세요", "BR-APR-03");
     await tx`update payments set status = 'cancelled' where capital_call_id = ${callId} and status = 'approved'`;
-    await tx`update capital_calls set cancelled_at = now() where id = ${callId}`;
+    await tx`update capital_calls set cancelled_at = now(), cancel_confirmed_by = ${userId} where id = ${callId}`;
   });
   return getCapitalCall(orgId, callId);
 }
@@ -136,6 +138,8 @@ export type GpCapitalCall = {
   my_call_amount: number;
   my_paid_amount: number;
   my_payment_status: string | null;
+  cancelled_at?: string | null; // GP가 발송 후 취소 (GP D54). 예전 GP는 보내지 않는다
+  cancel_reason?: string | null;
 };
 
 // 회차로 만들기·갱신. 내 요청액이 0인 회차(우리에게 요청이 없음)는 건너뛴다. 결과: 새로 만든 수 · 갱신한 수
@@ -153,6 +157,8 @@ export async function upsertGpCalls(orgId: string, commitmentId: string, calls: 
       purpose: g.purpose,
       gp_payment_status: g.my_payment_status,
       gp_paid_amount: Number(g.my_paid_amount),
+      gp_cancelled_at: g.cancelled_at ?? null,
+      gp_cancel_reason: g.cancel_reason ?? null,
     };
     const [row] = await sql<{ inserted: boolean }[]>`
       insert into capital_calls ${sql({ ...values, org_id: orgId, commitment_id: commitmentId, call_no: g.call_no, data_source: "gp_api" })}

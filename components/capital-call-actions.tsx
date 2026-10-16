@@ -87,7 +87,7 @@ export function NewCallForm({ commitmentId, nextNo, unfunded }: { commitmentId: 
   );
 }
 
-export function CancelCallButton({ callId }: { callId: string }) {
+export function CancelCallButton({ callId, label = "취소" }: { callId: string; label?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +97,8 @@ export function CancelCallButton({ callId }: { callId: string }) {
         type="button"
         disabled={pending}
         onClick={async () => {
-          if (!confirm("이 캐피탈콜을 취소할까요? 결재 대기·송금 대기 납입도 함께 취소됩니다.")) return;
+          // 결재 대기 납입은 서버가 막는다 (먼저 반려, BR-APR-03)
+          if (!confirm(`${label === "취소" ? "이 캐피탈콜을 취소할까요?" : "GP가 취소한 이 캐피탈콜을 우리 쪽에서도 취소할까요?"} 송금 대기 납입은 함께 취소됩니다.`)) return;
           setPending(true);
           setError(null);
           const res = await fetch(`/api/v1/capital-calls/${callId}/cancel`, { method: "POST" });
@@ -108,7 +109,7 @@ export function CancelCallButton({ callId }: { callId: string }) {
         }}
         className="rounded-md border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-60"
       >
-        취소
+        {label}
       </button>
       {error && <span className="max-w-[12rem] text-right text-xs text-rose-600">{error}</span>}
     </span>

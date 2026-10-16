@@ -76,6 +76,7 @@ export async function requestPayment(orgId: string, userId: string, callId: stri
   const result = await sql.begin(async (tx) => {
     const { call, commitmentStatus } = await lockCall(tx, orgId, callId);
     if (call.cancelled_at) throw new AppError(409, "INVALID_STATE", "취소된 캐피탈콜입니다", "BR-CALL-04");
+    if (call.gp_cancelled_at) throw new AppError(409, "GP_CALL_CANCELLED", "GP가 취소한 캐피탈콜입니다. 캐피탈콜 화면에서 취소를 확인하세요", "BR-CALL-04");
     if (commitmentStatus !== "active") throw new AppError(409, "COMMITMENT_NOT_ACTIVE", "결성 확인된(활성) 출자 건만 납입할 수 있습니다", "BR-CMT-07");
     const left = call.call_amount - call.paid_amount - call.pending_amount;
     if (input.amount > left) {
@@ -118,6 +119,11 @@ export async function requestPayment(orgId: string, userId: string, callId: stri
 
 // 결재 승인·반려 때 (approvals 서비스의 트랜잭션 안에서)
 export async function applyPaymentDecision(tx: postgres.TransactionSql, paymentId: string, decision: "approved" | "rejected") {
+  // L64: GP가 콜을 취소했으면 새 송금을 승인하지 않는다 (반려는 가능)
+  if (decision === "approved") {
+    const [gone] = await tx`select 1 from payments p join capital_calls c on c.id = p.capital_call_id where p.id = ${paymentId} and c.gp_cancelled_at is not null`;
+    if (gone) throw new AppError(409, "GP_CALL_CANCELLED", "GP가 이 캐피탈콜을 취소했습니다. 승인하지 말고 반려하세요", "BR-CALL-04");
+  }
   const [row] = await tx`update payments set status = ${decision} where id = ${paymentId} and status = 'requested' returning id`;
   if (!row) throw new AppError(409, "CONFLICT", "결재 대기 중인 납입이 아닙니다", "BR-PAY-01");
   return { payment_id: paymentId, payment_status: decision };

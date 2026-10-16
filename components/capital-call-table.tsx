@@ -58,6 +58,7 @@ export default function CapitalCallTable({ calls, showFund, canCancel }: { calls
                 </td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${CALL_PAYMENT_STATUS_STYLE[status]}`}>{CALL_PAYMENT_STATUS_LABEL[status]}</span>
+                  {c.gp_cancelled_at && !c.cancelled_at && <span className="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-800">GP 취소 · 확인 필요</span>}
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-600">
                   {c.data_source === "gp_api" ? (

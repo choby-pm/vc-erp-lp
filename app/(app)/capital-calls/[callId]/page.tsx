@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CancelCallButton } from "@/components/capital-call-actions";
 import { NewPaymentForm, PaymentRowActions } from "@/components/payment-actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatDateTime, formatKRW } from "@/lib/format";
@@ -58,6 +59,16 @@ export default async function CapitalCallDetailPage(props: PageProps<"/capital-c
         ))}
       </div>
 
+      {c.gp_cancelled_at && !c.cancelled_at && (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <p>
+            GP가 {formatDateTime(c.gp_cancelled_at)}에 이 캐피탈콜을 취소했습니다 — 사유: {c.gp_cancel_reason}. 새 납입 기안·승인은 막았습니다.
+            {c.paid_amount > 0 ? " 이미 송금한 납입이 있어 GP와 반환·정정 방법을 협의해야 합니다." : " 확인하면 우리 캐피탈콜도 취소되고 송금 대기 납입이 함께 취소됩니다. 결재 대기 납입은 먼저 반려하세요."}
+          </p>
+          {canWrite && c.paid_amount === 0 && <CancelCallButton callId={c.id} label="취소 확인" />}
+        </div>
+      )}
+
       {linked && c.paid_amount > 0 && (c.gp_paid_amount ?? 0) < c.paid_amount && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           우리는 {formatKRW(c.paid_amount)}을 보냈는데 GP는 아직 {formatKRW(c.gp_paid_amount)}만 받은 것으로 봅니다. GP가 은행 입금을 확인해 기록하면 맞춰집니다 (송금 뒤 7일은 확인 대기, L10·L28).
@@ -69,7 +80,7 @@ export default async function CapitalCallDetailPage(props: PageProps<"/capital-c
           <h2 className="text-sm font-semibold text-slate-900">
             납입 <span className="font-normal text-slate-500">· 기안 → 결재 → 송금 완료. 나눠 낼 수 있습니다</span>
           </h2>
-          {canWrite && !c.cancelled_at && <NewPaymentForm callId={c.id} left={left} />}
+          {canWrite && !c.cancelled_at && !c.gp_cancelled_at && <NewPaymentForm callId={c.id} left={left} />}
         </div>
         {payments.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-400">아직 납입이 없습니다.</p>

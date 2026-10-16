@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AS_OF_ERROR, performanceDate } from "@/lib/performance-date";
 import CapitalCallTable from "@/components/capital-call-table";
 import { NewCallForm } from "@/components/capital-call-actions";
 import CommitmentActions from "@/components/commitment-actions";
@@ -36,7 +37,7 @@ const ENTRY_LABEL = { commitment: "약정", contribution: "납입", distribution
 export default async function CommitmentDetailPage(props: PageProps<"/commitments/[commitmentId]">) {
   const { commitmentId } = await props.params;
   const { as_of: rawAsOf } = await props.searchParams;
-  const asOf = typeof rawAsOf === "string" && /^d{4}-d{2}-d{2}$/.test(rawAsOf) ? rawAsOf : todayKst();
+  const asOf = performanceDate(rawAsOf);
   const me = (await getCurrentUser())!;
   const c = await loadOrNotFound(() => getCommitment(me.org_id, commitmentId));
   const linked = c.data_source === "gp_api";
@@ -47,7 +48,7 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
   ]);
   const distributions = await listDistributions(me.org_id, { status: "all", commitment_id: commitmentId });
   const closing = c.status === "active" && c.fund_status === "liquidated" ? await closeCheck(me.org_id, commitmentId) : null;
-  const perf = c.status === "active" || c.status === "closed" ? await commitmentPerformance(me.org_id, commitmentId, asOf) : null;
+  const perf = asOf && (c.status === "active" || c.status === "closed") ? await commitmentPerformance(me.org_id, commitmentId, asOf) : null;
   const called = calls.filter((x) => !x.cancelled_at).reduce((s, x) => s + x.call_amount, 0);
   const unfunded = c.commitment_amount - called;
   const canWrite = me.role === "admin" || me.role === "officer";
@@ -102,6 +103,7 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
           </div>
         ))}
       </div>
+
 
       {c.origin === "selection" ? (
         <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm">
@@ -175,17 +177,21 @@ export default async function CommitmentDetailPage(props: PageProps<"/commitment
 
       {closing && <CloseActions commitmentId={c.id} initialCheck={closing} canWrite={canWrite} today={todayKst()} />}
 
+      {!asOf && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{AS_OF_ERROR} <Link href={`/commitments/${commitmentId}`} className="underline">오늘 기준으로 다시 조회</Link></p>}
       {perf && (
+        <>
+        <p className="text-xs text-slate-500">아래 성과는 선택한 기준일까지의 누적값입니다. 약정·업무 상태·캐피탈콜·분배 목록·대사 이력은 현재 기록입니다.</p>
         <PerformanceCard
           p={perf}
           asOfForm={
             <form className="flex items-center gap-2 text-xs text-slate-500">
               기준일
-              <input type="date" name="as_of" defaultValue={asOf} className="rounded-md border border-slate-300 px-2 py-1 text-xs" />
+              <input aria-label="성과 기준일" type="date" name="as_of" defaultValue={asOf ?? ""} className="rounded-md border border-slate-300 px-2 py-1 text-xs" />
               <button className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50">보기</button>
             </form>
           }
         />
+        </>
       )}
 
       {(c.status === "active" || calls.length > 0) && (

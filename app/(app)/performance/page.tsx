@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { AS_OF_ERROR, performanceDate } from "@/lib/performance-date";
 import { multiple, pct } from "@/components/performance-card";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate, formatKRW } from "@/lib/format";
-import { portfolioPerformance, todayKst, type GroupBy, type MetricRow } from "@/lib/services/performance";
+import { portfolioPerformance, type GroupBy, type MetricRow } from "@/lib/services/performance";
 
 export const metadata = { title: "성과 · VC ERP LP" };
 
@@ -39,7 +40,8 @@ const HEAD = ["약정", "납입", "분배", "평가액 (조정)", "TVPI", "DPI",
 export default async function PerformancePage(props: PageProps<"/performance">) {
   const me = (await getCurrentUser())!;
   const sp = await props.searchParams;
-  const asOf = typeof sp.as_of === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.as_of) ? sp.as_of : todayKst();
+  const asOf = performanceDate(sp.as_of);
+  if (!asOf) return <div className="space-y-4"><h1 className="text-2xl font-bold">성과</h1><p role="alert">{AS_OF_ERROR}</p><Link href="/performance" className="underline">오늘 기준으로 다시 조회</Link></div>;
   const groupBy = GROUPS.find(([g]) => g === sp.group_by)?.[0] ?? "vintage";
   const p = await portfolioPerformance(me.org_id, asOf, groupBy);
   const t = p.total;
@@ -63,7 +65,7 @@ export default async function PerformancePage(props: PageProps<"/performance">) 
         <form className="flex items-center gap-2 text-sm text-slate-500">
           <input type="hidden" name="group_by" value={groupBy} />
           기준일
-          <input type="date" name="as_of" defaultValue={asOf} className="rounded-md border border-slate-300 px-2 py-1 text-sm" />
+          <input aria-label="성과 기준일" type="date" name="as_of" defaultValue={asOf} className="rounded-md border border-slate-300 px-2 py-1 text-sm" />
           <button className="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50">보기</button>
         </form>
       </div>

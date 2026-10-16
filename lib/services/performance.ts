@@ -1,6 +1,9 @@
 import { sql } from "@/lib/db";
+import type { TransactionSql } from "postgres";
 import { assertUuid } from "@/lib/api/errors";
 import { getCommitment } from "@/lib/services/commitments";
+import { todayKst } from "@/lib/performance-date";
+export { todayKst } from "@/lib/performance-date";
 
 // 성과 지표 (R6-2, BR-PERF-01~05, L40). 모두 **우리 장부** 기준이고 저장하지 않는다 (청산 확인 때만 final_metrics 에 고정)
 // · 기준일(기본 오늘) 이후 날짜의 장부 행은 뺀다 (BR-PERF-01)
@@ -11,7 +14,6 @@ import { getCommitment } from "@/lib/services/commitments";
 //   돈이 한쪽으로만 흐르거나 첫 납입 후 90일 미만이면 계산하지 않는다 (BR-PERF-04)
 
 const DAY = 86_400_000;
-export const todayKst = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 const days = (a: string, b: string) => (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY;
 
 export type CashFlow = { date: string; amount: number; kind: "contribution" | "distribution" | "nav" };
@@ -98,22 +100,22 @@ export type Performance = {
 type Sums = { commitment: number; contribution: number; distribution: number };
 
 // 장부 합계·현금흐름·평가액을 읽어 성과를 계산한다. 포트폴리오 합계(R6-3)도 이 재료를 합쳐 쓴다
-export async function performanceInputs(orgId: string, commitmentId: string, asOf: string) {
-  const [s] = await sql<Sums[]>`
+export async function performanceInputs(orgId: string, commitmentId: string, asOf: string, db: typeof sql | TransactionSql = sql) {
+  const [s] = await db<Sums[]>`
     select coalesce(sum(amount) filter (where entry_type = 'commitment'), 0)::bigint as commitment,
            coalesce(sum(amount) filter (where entry_type = 'contribution'), 0)::bigint as contribution,
            coalesce(sum(amount) filter (where entry_type = 'distribution'), 0)::bigint as distribution
     from ledger_entries where org_id = ${orgId} and commitment_id = ${commitmentId} and entry_date <= ${asOf}
   `;
   // 같은 날짜끼리 묶은 현금흐름 (취소 행 포함, 순액)
-  const flows = await sql<{ date: string; kind: "contribution" | "distribution"; amount: number }[]>`
+  const flows = await db<{ date: string; kind: "contribution" | "distribution"; amount: number }[]>`
     select flow_date::text as date, entry_type as kind, sum(flow_amount)::bigint as amount
     from v_cashflows where org_id = ${orgId} and commitment_id = ${commitmentId} and flow_date <= ${asOf}
     group by flow_date, entry_type having sum(flow_amount) <> 0
     order by flow_date
   `;
-  const [m] = await sql<{ status: string; fund_id: string }[]>`select status, fund_id from commitments where id = ${commitmentId}`;
-  const [r] = await sql<{ id: string; period_end: string; nav_amount: number }[]>`
+  const [m] = await db<{ status: string; fund_id: string }[]>`select status, fund_id from commitments where id = ${commitmentId}`;
+  const [r] = await db<{ id: string; period_end: string; nav_amount: number }[]>`
     select id, period_end::text, nav_amount from reports
     where org_id = ${orgId} and fund_id = ${m.fund_id} and superseded_at is null and nav_amount is not null and period_end <= ${asOf}
     order by period_end desc, received_date desc nulls last limit 1

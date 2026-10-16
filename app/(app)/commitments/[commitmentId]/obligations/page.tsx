@@ -16,12 +16,13 @@ export default async function ObligationPage(
   const asOf = performanceDate(sp.as_of);
   if (!asOf) return <p role="alert">{AS_OF_ERROR}</p>;
   let data: Awaited<ReturnType<typeof getInvestmentObligations>> | null = null,
-    message = "";
+    message = "", sharingDenied = false;
   try {
     data = await getInvestmentObligations(me.org_id, commitmentId, asOf);
   } catch (e) {
     if (!(e instanceof AppError)) throw e;
     message = e.message;
+    sharingDenied=e.code==="SHARING_NOT_ALLOWED";
   }
   return (
     <div className="space-y-5">
@@ -61,7 +62,8 @@ export default async function ObligationPage(
           role="alert"
           className="rounded border border-amber-300 bg-amber-50 p-4"
         >
-          GP 조회 실패: {message}
+          {sharingDenied?"공유 미허용":"GP 조회 실패"}: {message}
+          {sharingDenied&&<Link href={`/funds/${c.fund_id}/sharing`} className="ml-2 underline">공유 상태·확대 요청</Link>}
         </p>
       )}
     </div>

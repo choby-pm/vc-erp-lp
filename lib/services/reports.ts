@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { AppError, assertUuid, notFound } from "@/lib/api/errors";
 import type { DataSource } from "@/lib/labels";
 import type { ComplianceCheckInput, ReportCreateInput, ReportListQuery } from "@/lib/schemas/reports";
+import { assertReportSharingWritable } from "@/lib/services/sharing";
 
 // GP 보고 · 검토 · 조건 준수 점검 (R5-2, BR-RPT-01~05, BR-CHK-01, L34~L36). 모든 함수는 기관 ID를 첫 인자로 받는다 (BR-ORG-02)
 // · 연동 보고: GP가 발행한 보고만 들어온다. 스냅샷·우리 몫 평가액은 GP 값 (BR-RPT-01, L8)
@@ -127,6 +128,7 @@ async function recordCheck(db: Db, orgId: string, reportId: string, actual: numb
 // 담당자가 점검 기록 (수기 보고, 또는 연동 보고 다시 점검). 연동이면 실제 비율은 GP 스냅샷 값으로 채운다
 export async function addComplianceCheck(orgId: string, userId: string, reportId: string, input: ComplianceCheckInput) {
   const r = await getReport(orgId, reportId);
+  await assertReportSharingWritable(orgId,r.fund_id,r.data_source);
   if (r.primary_purpose_min_ratio === null) throw new AppError(422, "NO_REQUIREMENT", "이 조합에는 주목적 의무 비율이 없어 점검할 것이 없습니다. 조합 정보를 확인하세요", "BR-CHK-01");
   const fromGp = r.data_source === "gp_api" ? Number((r.snapshot as { totals?: { primary_purpose_ratio?: number } } | null)?.totals?.primary_purpose_ratio ?? NaN) : NaN;
   const actual = Number.isFinite(fromGp) ? fromGp : input.actual_ratio;
@@ -141,6 +143,8 @@ export async function addComplianceCheck(orgId: string, userId: string, reportId
 
 export async function reviewReport(orgId: string, userId: string, reportId: string) {
   assertUuid(reportId, "보고를");
+  const report=await getReport(orgId,reportId);
+  await assertReportSharingWritable(orgId,report.fund_id,report.data_source);
   const [row] = await sql`
     update reports set reviewed_at = coalesce(reviewed_at, now()), reviewed_by = coalesce(reviewed_by, ${userId})
     where id = ${reportId} and org_id = ${orgId} returning id

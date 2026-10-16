@@ -70,6 +70,10 @@ async function call<T>(method: "GET" | "PUT" | "POST", path: string, body: unkno
     const gpCode = json?.error?.code ?? `HTTP_${res.status}`;
     const gpMessage = json?.error?.message ?? "응답 형식이 올바르지 않습니다";
     const details = { gp_status: res.status, gp_code: gpCode, gp_message: gpMessage };
+    if(gpCode==="SHARING_DENIED") {
+      errorCode="SHARING_NOT_ALLOWED";
+      throw new AppError(403,"SHARING_NOT_ALLOWED","이 자료 종류는 GP가 공유를 허용하지 않았습니다",undefined,details);
+    }
     if (res.status === 401 || res.status === 503) {
       errorCode = "GP_NOT_CONFIGURED";
       throw new AppError(503, "GP_NOT_CONFIGURED", `GP가 연동 요청을 받지 않았습니다: ${gpMessage}`, undefined, details);
@@ -110,7 +114,8 @@ async function download(path: string, o: CallOptions): Promise<Response> {
     }
     status = res.status;
     if (res.ok && res.body) return res;
-    if (res.status === 404 || res.status === 403) throw new AppError(404, "NOT_FOUND", "GP에서 파일을 찾을 수 없습니다");
+    if (res.status === 403) throw new AppError(403, "SHARING_NOT_ALLOWED", "GP 공유 정책상 첨부 다운로드가 허용되지 않습니다");
+    if (res.status === 404) throw new AppError(404, "NOT_FOUND", "GP에서 파일을 찾을 수 없습니다");
     throw new AppError(503, "GP_UNAVAILABLE", `GP 시스템 오류 (HTTP ${res.status})`, "BR-SYNC-10");
   } finally {
     await writeAudit({

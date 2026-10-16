@@ -12,6 +12,7 @@ import { syncNotices } from "@/lib/services/notices";
 import { upsertGpReports } from "@/lib/services/reports";
 import { upsertGpMeetings } from "@/lib/services/meetings";
 import { upsertGpDistributions, type GpDistribution } from "@/lib/services/distributions";
+import { fetchFundSharing } from "@/lib/services/sharing";
 
 // 받은 GP 이벤트 처리 — 동기화 (R3-4, 03 DB 설계 5장, 04 비즈니스 규칙 10-1)
 // · 이벤트는 "무엇이 바뀌었다"는 신호일 뿐이다. 본문으로 데이터를 만들지 않고 GP API로 다시 읽어 반영한다 (BR-SYNC-05)
@@ -73,7 +74,7 @@ export type FundSyncResult = {
   imported?: "created" | "confirmed";
   calls?: CallsSyncResult;
   past_payments?: ImportResult;
-  reports?: { fetched: number; created: number };
+  reports?: { fetched: number; created: number; skipped?: "sharing_not_allowed" };
   meetings?: { fetched: number; created: number };
   distributions?: { created: number; updated: number; cancelled: number; imported: number };
 };
@@ -126,7 +127,12 @@ export async function syncFund(orgId: string, gpId: string, gpFundId: string, op
   const [active] = await sql<{ id: string }[]>`select id from commitments where org_id = ${orgId} and fund_id = ${fundId} and status = 'active'`;
   const distributions = active ? await upsertGpDistributions(orgId, active.id, await gp.get<GpDistribution[]>(`/funds/${gpFundId}/distributions`)) : undefined;
   // 발행된 정기 보고 (R5-2). 조합원이면 출자 건 상태와 상관없이 받는다 (보고는 조합 단위)
-  const reports = await upsertGpReports(orgId, fundId, await gp.get(`/funds/${gpFundId}/reports`));
+  const sharing=await fetchFundSharing(orgId,fundId,opts.actor);
+  let reports:NonNullable<FundSyncResult["reports"]>={fetched:0,created:0,skipped:"sharing_not_allowed"};
+  if(sharing.snapshot.resources.find(r=>r.resource_type==="reports")?.allowed) {
+    try { reports=await upsertGpReports(orgId,fundId,await gp.get(`/funds/${gpFundId}/reports`)); }
+    catch(e){if(!(e instanceof AppError&&e.code==="SHARING_NOT_ALLOWED"))throw e;await fetchFundSharing(orgId,fundId,opts.actor);}
+  }
   // 소집된 총회·안건·결과 (R5-3)
   const meetings = await upsertGpMeetings(orgId, fundId, await gp.get(`/funds/${gpFundId}/meetings`));
   return { fund_id: fundId, source: src.source, ledger, ...(imported ? { imported } : {}), calls, ...(past_payments ? { past_payments } : {}), reports, meetings, ...(distributions ? { distributions } : {}) };
@@ -360,6 +366,7 @@ async function handle(e: Inbound, orgId: string, gpId: string): Promise<Outcome>
   switch (e.event_type) {
     case "fund.status_changed":
     case "fund.updated":
+    case "fund.sharing_updated":
     case "fund.terms_updated": {
       if (!fundId) return { done: false, reason: "조합 정보가 없는 이벤트" };
       const r = await syncFund(orgId, gpId, fundId, { create: false });

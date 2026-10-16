@@ -7,6 +7,7 @@ import { formatDate, formatDateTime, formatKRW, formatPercent } from "@/lib/form
 import { CHECK_VIEW_LABEL, CHECK_VIEW_STYLE, reportPeriodLabel } from "@/lib/labels";
 import { loadOrNotFound } from "@/lib/page-helpers";
 import { getReport } from "@/lib/services/reports";
+import { fetchFundSharing, storedFundSharing } from "@/lib/services/sharing";
 
 export const metadata = { title: "GP 보고 · VC ERP LP" };
 
@@ -21,7 +22,13 @@ export default async function ReportDetailPage(props: PageProps<"/reports/[repor
   const { reportId } = await props.params;
   const me = (await getCurrentUser())!;
   const r = await loadOrNotFound(() => getReport(me.org_id, reportId));
-  const canWrite = me.role === "admin" || me.role === "officer";
+  let sharing:Awaited<ReturnType<typeof fetchFundSharing>>|Awaited<ReturnType<typeof storedFundSharing>>=null;
+  let sharingError="";
+  if(r.data_source==="gp_api") {
+    try{sharing=await fetchFundSharing(me.org_id,r.fund_id);}catch(e){sharingError=e instanceof Error?e.message:"상태 확인 실패";sharing=await storedFundSharing(me.org_id,r.fund_id);}
+  }
+  const archived=r.data_source==="gp_api"&&sharing?.snapshot.resources.find(s=>s.resource_type==="reports")?.allowed===false;
+  const canWrite = (me.role === "admin" || me.role === "officer")&&(r.data_source!=="gp_api"||sharing?.fresh===true&&!archived);
   const s = (r.snapshot ?? {}) as Snapshot;
   const t = s.totals ?? {};
   const linked = r.data_source === "gp_api";
@@ -71,6 +78,8 @@ export default async function ReportDetailPage(props: PageProps<"/reports/[repor
         </div>
         {canWrite && !r.reviewed_at && !r.superseded_at && <ReviewButton reportId={r.id} />}
       </div>
+
+      {linked&&<div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm"><p>{archived?"공유 철회 전 수신본 · 읽기 전용 보존":sharingError?`GP 공유 상태 확인 실패 · 보존본 조회만 가능: ${sharingError}`:"GP 공유 허용 · 수신 당시 보고 근거"}</p><Link href={`/funds/${r.fund_id}/sharing`} className="text-emerald-700 underline">자료 종류별 공유 상태·확대 요청</Link></div>}
 
       {r.superseded_at && (
         <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
@@ -139,9 +148,9 @@ export default async function ReportDetailPage(props: PageProps<"/reports/[repor
               <ul className="mt-1 space-y-1">
                 {r.attachments.map((a) => (
                   <li key={a.id}>
-                    <a href={`/api/v1/reports/${r.id}/attachments/${a.id}`} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
+                    {sharing?.fresh&&!archived&&sharing.snapshot.resources.find(s=>s.resource_type==="attachments")?.allowed?<a href={`/api/v1/reports/${r.id}/attachments/${a.id}`} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
                       {a.file_name}
-                    </a>
+                    </a>:<span className="text-slate-500">{a.file_name} · 현재 다운로드 미허용 또는 상태 미확인</span>}
                   </li>
                 ))}
               </ul>

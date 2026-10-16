@@ -4,7 +4,8 @@
 # · 03:00 데모 초기화(Vercel 주기 작업)보다 앞서 끝나게 01:00. 지연돼도 끝에 복원하므로 데모는 처음 상태로 남는다
 # · 하나라도 실패하면 실행이 실패로 표시되고 GitHub가 메일을 보낸다 (결과지는 실패해도 남긴다)
 # · 비밀값: LP_QA_ENV · GP_QA_ENV = 각 .env.local 에서 데모 DB에 필요한 값만 (NEON_API_KEY · NEON_PROJECT_ID · DEMO_BRANCH_ID · DEMO_SEED_BRANCH_ID · PGDATABASE · PGUSER)
-# · 비공개 GP checkout은 GP_REPO_READ_TOKEN(해당 저장소 contents:read)이 필요하다.
+# · 비공개 GP checkout은 GP_REPO_DEPLOY_KEY(GP 저장소 읽기 전용 배포 키의 개인 키)로 한다.
+# · GP QA의 투자 실행 승인자(기안자와 다른 관리자, W06): QA_GP_APPROVER_EMAIL · QA_GP_APPROVER_PASSWORD
 name: QA
 
 on:
@@ -33,7 +34,7 @@ jobs:
         with:
           repository: choby-pm/vc-erp-gp
           path: gp
-          token: ${{ secrets.GP_REPO_READ_TOKEN || github.token }}
+          ssh-key: ${{ secrets.GP_REPO_DEPLOY_KEY }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -69,6 +70,9 @@ jobs:
         id: gp_qa
         continue-on-error: true
         working-directory: gp
+        env:
+          QA_GP_APPROVER_EMAIL: ${{ secrets.QA_GP_APPROVER_EMAIL }}
+          QA_GP_APPROVER_PASSWORD: ${{ secrets.QA_GP_APPROVER_PASSWORD }}
         run: node --env-file=.env.local scripts/qa-gp.mjs
       - name: 데모 복원 (끝)
         if: always() && steps.qa_env.outcome == 'success'

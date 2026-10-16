@@ -41,9 +41,9 @@ API 결과와 화면 증거는 [QA 폴더](qa-reports)에 있다. 현재 LP 대�
 
 ## 실패 메일과 CI
 
-[2026-10-16 조사](qa-reports/2026-10-16-ci-investigation.md): 비공개 GP checkout 404로 테스트 시작 전 실패했다. 기본 LP GITHUB_TOKEN은 형제 private GP 저장소를 읽지 못했다. `GP_REPO_READ_TOKEN`(GP 저장소 contents:read)을 사용할 수 있게 하고 환경 파일 생성 전 실패 시 마지막 복원을 건너뛰도록 수정했다. 실제 token/secret 등록·원격 워크플로 재실행은 하지 않았다.
+[2026-10-16 조사](qa-reports/2026-10-16-ci-investigation.md): 비공개 GP checkout 404로 테스트 시작 전 실패했다. 기본 LP GITHUB_TOKEN은 형제 private GP 저장소를 읽지 못했다. GP 저장소 읽기 전용 배포 키(`GP_REPO_DEPLOY_KEY`)로 checkout하게 하고 환경 파일 생성 전 실패 시 마지막 복원을 건너뛰도록 수정했다. 실제 token/secret 등록·원격 워크플로 재실행은 하지 않았다.
 
-GP 전체 QA의 투자 시나리오는 별도 관리자 실행 승인을 거치도록 수정했다. 대상 QA 사이트의 `QA_GP_APPROVER_EMAIL/PASSWORD`가 GP_QA_ENV에 필요하며 로컬에서는 비공개 시드 계정 파일을 사용할 수 있다. 새 QA는 문법 검사만 했고 배포 대상 전체 QA는 미실행이다.
+GP 전체 QA의 투자 시나리오는 별도 관리자 실행 승인을 거치도록 수정했다. 대상 QA 사이트의 `QA_GP_APPROVER_EMAIL/PASSWORD`를 별도 Actions secret으로 넘기며 로컬에서는 비공개 시드 계정 파일을 사용할 수 있다. 새 QA는 문법 검사만 했고 배포 대상 전체 QA는 미실행이다.
 
 ## 남은 항목과 사례
 

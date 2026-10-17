@@ -1,0 +1,658 @@
+{
+  "gp_fund_id": "c2d482b1-3ba2-4fc2-851a-a42ecc07324f",
+  "tables": {
+    "funds": [
+      {
+        "id": "064e7620-1f81-444b-bfcb-9996c687452b",
+        "name": "체험 분배·청산 검증조합",
+        "gp_id": "5a8d38a4-a18f-4422-ba7f-00bd30612f78",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "status": "operating",
+        "strategy": "early",
+        "fund_type": "venture",
+        "carry_rate": 0.2,
+        "created_at": "2026-10-17T01:26:53.51484+00:00",
+        "created_by": null,
+        "gp_fund_id": "c2d482b1-3ba2-4fc2-851a-a42ecc07324f",
+        "term_years": 8,
+        "updated_at": "2026-10-17T01:27:07.370846+00:00",
+        "data_source": "gp_api",
+        "hurdle_rate": 0.07,
+        "vintage_year": 2026,
+        "target_amount": 2000000000,
+        "formation_date": "2026-06-01",
+        "gp_key_persons": [
+          {
+            "name": "김도윤",
+            "role": "lead",
+            "position": "대표이사"
+          }
+        ],
+        "last_synced_at": "2026-10-17T01:27:07.359+00:00",
+        "primary_purpose": "사람·AI 체험용 가상 조합",
+        "fund_size_amount": 2000000000,
+        "gp_key_persons_prev": null,
+        "management_fee_rate": 0.02,
+        "key_person_changed_at": null,
+        "key_person_reviewed_at": null,
+        "key_person_reviewed_by": null,
+        "investment_period_years": 4,
+        "primary_purpose_min_ratio": 0.5
+      },
+      {
+        "id": "2e0ccafe-7573-47a9-99cd-7f9d3a2d8de6",
+        "name": "체험 분배·청산 검증조합",
+        "gp_id": "b7c56651-c6b8-4e0a-a625-d13c2facd60c",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "status": "operating",
+        "strategy": "early",
+        "fund_type": "venture",
+        "carry_rate": 0.2,
+        "created_at": "2026-10-17T01:26:54.762974+00:00",
+        "created_by": null,
+        "gp_fund_id": "c2d482b1-3ba2-4fc2-851a-a42ecc07324f",
+        "term_years": 8,
+        "updated_at": "2026-10-17T01:27:07.939021+00:00",
+        "data_source": "gp_api",
+        "hurdle_rate": 0.07,
+        "vintage_year": 2026,
+        "target_amount": 2000000000,
+        "formation_date": "2026-06-01",
+        "gp_key_persons": [
+          {
+            "name": "김도윤",
+            "role": "lead",
+            "position": "대표이사"
+          }
+        ],
+        "last_synced_at": "2026-10-17T01:27:07.927+00:00",
+        "primary_purpose": "사람·AI 체험용 가상 조합",
+        "fund_size_amount": 2000000000,
+        "gp_key_persons_prev": null,
+        "management_fee_rate": 0.02,
+        "key_person_changed_at": null,
+        "key_person_reviewed_at": null,
+        "key_person_reviewed_by": null,
+        "investment_period_years": 4,
+        "primary_purpose_min_ratio": 0.5
+      }
+    ],
+    "commitments": [
+      {
+        "id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "origin": "imported",
+        "status": "active",
+        "fund_id": "064e7620-1f81-444b-bfcb-9996c687452b",
+        "created_at": "2026-10-17T01:26:53.552645+00:00",
+        "updated_at": "2026-10-17T01:26:53.967377+00:00",
+        "closed_date": null,
+        "proposal_id": null,
+        "cancel_reason": null,
+        "final_metrics": null,
+        "cancelled_date": null,
+        "confirmed_date": "2026-10-17"
+      },
+      {
+        "id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "origin": "imported",
+        "status": "active",
+        "fund_id": "2e0ccafe-7573-47a9-99cd-7f9d3a2d8de6",
+        "created_at": "2026-10-17T01:26:54.792457+00:00",
+        "updated_at": "2026-10-17T01:26:54.887281+00:00",
+        "closed_date": null,
+        "proposal_id": null,
+        "cancel_reason": null,
+        "final_metrics": null,
+        "cancelled_date": null,
+        "confirmed_date": "2026-10-17"
+      }
+    ],
+    "capital_calls": [
+      {
+        "id": "067d8a51-5920-41fb-a781-67c8686f8a30",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "call_no": 1,
+        "purpose": "체험 조합 최초 납입",
+        "due_date": "2026-05-31",
+        "call_date": "2026-05-20",
+        "created_at": "2026-10-17T01:26:54.135828+00:00",
+        "created_by": null,
+        "is_initial": true,
+        "updated_at": "2026-10-17T01:27:07.53427+00:00",
+        "call_amount": 1000000,
+        "data_source": "gp_api",
+        "cancelled_at": null,
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "gp_paid_amount": 1000000,
+        "gp_cancelled_at": null,
+        "gp_cancel_reason": null,
+        "gp_payment_status": "paid",
+        "cancel_confirmed_by": null
+      },
+      {
+        "id": "deab0ebd-1e64-4530-837b-c07a663e7b16",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "call_no": 1,
+        "purpose": "체험 조합 최초 납입",
+        "due_date": "2026-05-31",
+        "call_date": "2026-05-20",
+        "created_at": "2026-10-17T01:26:54.989413+00:00",
+        "created_by": null,
+        "is_initial": true,
+        "updated_at": "2026-10-17T01:27:08.093119+00:00",
+        "call_amount": 900000,
+        "data_source": "gp_api",
+        "cancelled_at": null,
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "gp_paid_amount": 900000,
+        "gp_cancelled_at": null,
+        "gp_cancel_reason": null,
+        "gp_payment_status": "paid",
+        "cancel_confirmed_by": null
+      }
+    ],
+    "payments": [
+      {
+        "id": "fd2b5181-1396-470d-855e-d582c7d7432b",
+        "amount": 1000000,
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "origin": "imported",
+        "status": "paid",
+        "paid_date": "2026-05-25",
+        "created_at": "2026-10-17T01:26:54.14871+00:00",
+        "created_by": null,
+        "updated_at": "2026-10-17T01:26:54.14871+00:00",
+        "gp_entry_id": "6796b4f2-d7c7-4b89-9ffc-7b127a626f8c",
+        "planned_date": null,
+        "bank_reference": null,
+        "capital_call_id": "067d8a51-5920-41fb-a781-67c8686f8a30"
+      },
+      {
+        "id": "9dae4331-1b53-4656-95d8-f52676cb0961",
+        "amount": 900000,
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "origin": "imported",
+        "status": "paid",
+        "paid_date": "2026-05-25",
+        "created_at": "2026-10-17T01:26:54.999389+00:00",
+        "created_by": null,
+        "updated_at": "2026-10-17T01:26:54.999389+00:00",
+        "gp_entry_id": "80ae7d72-d813-46ce-ab7b-74b14490d3cd",
+        "planned_date": null,
+        "bank_reference": null,
+        "capital_call_id": "deab0ebd-1e64-4530-837b-c07a663e7b16"
+      }
+    ],
+    "ledger_entries": [
+      {
+        "id": "28557010-69a7-4cc2-876c-48c4ee5258f0",
+        "memo": "가져온 출자 건 결성 확인 (GP 약정)",
+        "amount": 1000000000,
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "source_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "created_at": "2026-10-17T01:26:53.967377+00:00",
+        "created_by": null,
+        "entry_date": "2026-05-10",
+        "entry_type": "commitment",
+        "source_type": "commitment_confirmation",
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "reversal_of_id": null
+      },
+      {
+        "id": "5f744890-ec17-45b9-9e64-71708cf95388",
+        "memo": "1회 캐피탈콜 가져온 납입 (GP 원장 근거)",
+        "amount": 1000000,
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "source_id": "fd2b5181-1396-470d-855e-d582c7d7432b",
+        "created_at": "2026-10-17T01:26:54.14871+00:00",
+        "created_by": null,
+        "entry_date": "2026-05-25",
+        "entry_type": "contribution",
+        "source_type": "payment",
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "reversal_of_id": null
+      },
+      {
+        "id": "dd777479-73fd-493b-b166-235904464c78",
+        "memo": "가져온 출자 건 결성 확인 (GP 약정)",
+        "amount": 900000000,
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "source_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "created_at": "2026-10-17T01:26:54.887281+00:00",
+        "created_by": null,
+        "entry_date": "2026-05-10",
+        "entry_type": "commitment",
+        "source_type": "commitment_confirmation",
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "reversal_of_id": null
+      },
+      {
+        "id": "e1a9181d-ce80-4da3-b6f8-eed8d13dffb0",
+        "memo": "1회 캐피탈콜 가져온 납입 (GP 원장 근거)",
+        "amount": 900000,
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "source_id": "9dae4331-1b53-4656-95d8-f52676cb0961",
+        "created_at": "2026-10-17T01:26:54.999389+00:00",
+        "created_by": null,
+        "entry_date": "2026-05-25",
+        "entry_type": "contribution",
+        "source_type": "payment",
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "reversal_of_id": null
+      }
+    ],
+    "gp_ledger_entries": [
+      {
+        "id": "7d17252a-c234-44a3-9f2b-4a02f028ca7c",
+        "amount": 1000000000,
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "gp_source": {
+          "type": "formation"
+        },
+        "synced_at": "2026-10-17T01:26:53.94487+00:00",
+        "entry_date": "2026-05-10",
+        "entry_type": "commitment",
+        "gp_entry_id": "6721bccf-84c7-47e1-a116-2049e5d82614",
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "gp_reversal_of_id": null
+      },
+      {
+        "id": "39cf3a8e-bc05-4603-8f4e-d80e6bb572ea",
+        "amount": 1000000,
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "gp_source": {
+          "type": "capital_call",
+          "call_no": 1,
+          "is_initial": true
+        },
+        "synced_at": "2026-10-17T01:26:53.94487+00:00",
+        "entry_date": "2026-05-25",
+        "entry_type": "contribution",
+        "gp_entry_id": "6796b4f2-d7c7-4b89-9ffc-7b127a626f8c",
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "gp_reversal_of_id": null
+      },
+      {
+        "id": "f0e3f94d-b67f-43db-bd7d-2b0f7676b4cf",
+        "amount": 900000000,
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "gp_source": {
+          "type": "formation"
+        },
+        "synced_at": "2026-10-17T01:26:54.873944+00:00",
+        "entry_date": "2026-05-10",
+        "entry_type": "commitment",
+        "gp_entry_id": "9a5eb127-c899-43ac-bbe4-4dd57787cd6d",
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "gp_reversal_of_id": null
+      },
+      {
+        "id": "8ecee57a-b9c4-47d2-9196-55ad19b3d770",
+        "amount": 900000,
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "gp_source": {
+          "type": "capital_call",
+          "call_no": 1,
+          "is_initial": true
+        },
+        "synced_at": "2026-10-17T01:26:54.873944+00:00",
+        "entry_date": "2026-05-25",
+        "entry_type": "contribution",
+        "gp_entry_id": "80ae7d72-d813-46ce-ab7b-74b14490d3cd",
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "gp_reversal_of_id": null
+      }
+    ],
+    "distributions": [
+      {
+        "id": "3471c8a1-0b48-46f5-8638-96880b87a079",
+        "amount": 15000,
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "status": "announced",
+        "is_final": false,
+        "gp_status": "confirmed",
+        "created_at": "2026-10-17T01:26:54.274054+00:00",
+        "created_by": null,
+        "updated_at": "2026-10-17T01:27:07.632041+00:00",
+        "data_source": "gp_api",
+        "received_via": null,
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "gp_components": {
+          "return_of_capital": 15000
+        },
+        "profit_amount": 0,
+        "received_date": null,
+        "distribution_no": 1,
+        "distribution_date": "2026-10-17",
+        "return_of_capital_amount": 15000
+      },
+      {
+        "id": "19b2cd4d-c453-4b08-a13e-7c831f224fc0",
+        "amount": 13500,
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "status": "announced",
+        "is_final": false,
+        "gp_status": "confirmed",
+        "created_at": "2026-10-17T01:26:55.09015+00:00",
+        "created_by": null,
+        "updated_at": "2026-10-17T01:27:08.165267+00:00",
+        "data_source": "gp_api",
+        "received_via": null,
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "gp_components": {
+          "return_of_capital": 13500
+        },
+        "profit_amount": 0,
+        "received_date": null,
+        "distribution_no": 1,
+        "distribution_date": "2026-10-17",
+        "return_of_capital_amount": 13500
+      }
+    ],
+    "reconciliations": [
+      {
+        "id": "50eff501-33e6-4412-9cd9-0a23b9b95d55",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "gp_amount": 1000000000,
+        "checked_at": "2026-10-17T01:26:53.967377+00:00",
+        "entry_type": "commitment",
+        "our_amount": 1000000000,
+        "resolved_by": null,
+        "recon_status": "matched",
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "resolution_memo": null
+      },
+      {
+        "id": "b15bf5b2-2eed-4a8f-bc99-f13a4daff835",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "gp_amount": 1000000,
+        "checked_at": "2026-10-17T01:26:54.14871+00:00",
+        "entry_type": "contribution",
+        "our_amount": 1000000,
+        "resolved_by": null,
+        "recon_status": "matched",
+        "commitment_id": "193a3446-687b-469d-bfd6-481e57292b51",
+        "resolution_memo": null
+      },
+      {
+        "id": "bc945ba8-17be-4426-a41e-4938a2d190f5",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "gp_amount": 900000000,
+        "checked_at": "2026-10-17T01:26:54.887281+00:00",
+        "entry_type": "commitment",
+        "our_amount": 900000000,
+        "resolved_by": null,
+        "recon_status": "matched",
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "resolution_memo": null
+      },
+      {
+        "id": "b11b830a-7cc8-4283-a3ba-18d64a4669ec",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "gp_amount": 900000,
+        "checked_at": "2026-10-17T01:26:54.999389+00:00",
+        "entry_type": "contribution",
+        "our_amount": 900000,
+        "resolved_by": null,
+        "recon_status": "matched",
+        "commitment_id": "0cbd4bb5-a85f-4971-93f5-04ca06d1540a",
+        "resolution_memo": null
+      }
+    ],
+    "fund_sharing_states": [
+      {
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "fund_id": "064e7620-1f81-444b-bfcb-9996c687452b",
+        "snapshot": {
+          "requests": [],
+          "resources": [
+            {
+              "allowed": false,
+              "policy_id": null,
+              "changed_at": null,
+              "resource_type": "reports"
+            },
+            {
+              "allowed": false,
+              "policy_id": null,
+              "changed_at": null,
+              "resource_type": "obligations"
+            },
+            {
+              "allowed": false,
+              "policy_id": null,
+              "changed_at": null,
+              "resource_type": "attachments"
+            }
+          ]
+        },
+        "checked_at": "2026-10-17T01:27:07.719007+00:00"
+      },
+      {
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "fund_id": "2e0ccafe-7573-47a9-99cd-7f9d3a2d8de6",
+        "snapshot": {
+          "requests": [],
+          "resources": [
+            {
+              "allowed": false,
+              "policy_id": null,
+              "changed_at": null,
+              "resource_type": "reports"
+            },
+            {
+              "allowed": false,
+              "policy_id": null,
+              "changed_at": null,
+              "resource_type": "obligations"
+            },
+            {
+              "allowed": false,
+              "policy_id": null,
+              "changed_at": null,
+              "resource_type": "attachments"
+            }
+          ]
+        },
+        "checked_at": "2026-10-17T01:27:08.244701+00:00"
+      }
+    ],
+    "reports": [],
+    "meetings": [
+      {
+        "id": "a5553a11-e0b1-47eb-9902-53ede616c17e",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "status": "held",
+        "fund_id": "064e7620-1f81-444b-bfcb-9996c687452b",
+        "location": "가상 체험 회의실",
+        "created_at": "2026-10-17T01:26:54.61956+00:00",
+        "created_by": null,
+        "updated_at": "2026-10-17T01:27:07.815083+00:00",
+        "data_source": "gp_api",
+        "voting_open": false,
+        "meeting_date": "2026-06-01",
+        "meeting_type": "formation",
+        "gp_meeting_id": "08bcb4bb-954d-48c0-9c5e-8ebf630f4de3",
+        "vote_submit_error": null,
+        "vote_submit_error_code": null,
+        "vote_submit_attempted_at": null
+      },
+      {
+        "id": "ede82acf-2bad-495a-837e-df41e15e3938",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "status": "held",
+        "fund_id": "2e0ccafe-7573-47a9-99cd-7f9d3a2d8de6",
+        "location": "가상 체험 회의실",
+        "created_at": "2026-10-17T01:26:55.325244+00:00",
+        "created_by": null,
+        "updated_at": "2026-10-17T01:27:08.341401+00:00",
+        "data_source": "gp_api",
+        "voting_open": false,
+        "meeting_date": "2026-06-01",
+        "meeting_type": "formation",
+        "gp_meeting_id": "08bcb4bb-954d-48c0-9c5e-8ebf630f4de3",
+        "vote_submit_error": null,
+        "vote_submit_error_code": null,
+        "vote_submit_attempted_at": null
+      }
+    ],
+    "agendas": [
+      {
+        "id": "7cbeb0b1-2384-492c-8e18-db481ca3be81",
+        "title": "체험 조합 결성의 건",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "result": "passed",
+        "agenda_no": 2,
+        "created_at": "2026-10-17T01:26:54.61956+00:00",
+        "meeting_id": "a5553a11-e0b1-47eb-9902-53ede616c17e",
+        "updated_at": "2026-10-17T01:27:07.815083+00:00",
+        "agenda_type": "other",
+        "description": "실제 결의 아님",
+        "gp_agenda_id": "c7f4fc5a-e3e0-48f5-9900-c6a0364134dc",
+        "review_opinion": null
+      },
+      {
+        "id": "8582c2a6-3d28-4cb7-a991-5c05fff6f8e1",
+        "title": "조합 결성의 건",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "result": "passed",
+        "agenda_no": 1,
+        "created_at": "2026-10-17T01:26:54.61956+00:00",
+        "meeting_id": "a5553a11-e0b1-47eb-9902-53ede616c17e",
+        "updated_at": "2026-10-17T01:27:07.815083+00:00",
+        "agenda_type": "formation",
+        "description": null,
+        "gp_agenda_id": "0ad56e99-2e85-4a55-9699-2cab9a96e302",
+        "review_opinion": null
+      },
+      {
+        "id": "e11d7a17-06aa-4d23-b373-c9752d724420",
+        "title": "조합 결성의 건",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "result": "passed",
+        "agenda_no": 1,
+        "created_at": "2026-10-17T01:26:55.325244+00:00",
+        "meeting_id": "ede82acf-2bad-495a-837e-df41e15e3938",
+        "updated_at": "2026-10-17T01:27:08.341401+00:00",
+        "agenda_type": "formation",
+        "description": null,
+        "gp_agenda_id": "0ad56e99-2e85-4a55-9699-2cab9a96e302",
+        "review_opinion": null
+      },
+      {
+        "id": "aaa92999-0a5f-4604-ba34-f378b8df2edd",
+        "title": "체험 조합 결성의 건",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "result": "passed",
+        "agenda_no": 2,
+        "created_at": "2026-10-17T01:26:55.325244+00:00",
+        "meeting_id": "ede82acf-2bad-495a-837e-df41e15e3938",
+        "updated_at": "2026-10-17T01:27:08.341401+00:00",
+        "agenda_type": "other",
+        "description": "실제 결의 아님",
+        "gp_agenda_id": "c7f4fc5a-e3e0-48f5-9900-c6a0364134dc",
+        "review_opinion": null
+      }
+    ],
+    "notices": [
+      {
+        "id": "6152f790-27a1-4a89-ab45-e0e19ba60f4e",
+        "body": "바다성장출자 귀중\n\n체험 분배·청산 검증조합의 제1차 분배를 아래와 같이 안내드립니다.\n\n· 분배 금액: 13,500원\n   - 원금 반환: 13,500원\n· 지급 예정일: 2026. 10. 17.\n· 적용 조건: 기준수익률 연 7%, 성과보수율 20% (규약 버전 1)",
+        "title": "체험 분배·청산 검증조합 제1차 분배 안내",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "fund_id": "2e0ccafe-7573-47a9-99cd-7f9d3a2d8de6",
+        "sent_at": "2026-10-17T01:20:33.941+00:00",
+        "created_at": "2026-10-17T01:26:56.617732+00:00",
+        "updated_at": "2026-10-17T01:27:04.475149+00:00",
+        "data_source": "gp_api",
+        "notice_type": "distribution",
+        "gp_notice_id": "f06edb4e-23ab-459e-b03e-c11802f4e217",
+        "gp_ack_sent_at": null,
+        "acknowledged_at": null,
+        "acknowledged_by": null
+      },
+      {
+        "id": "dd5b8195-f472-4093-bd33-1c2e1bd7e53e",
+        "body": "체험 분배·청산 검증조합 결성총회를 아래와 같이 소집합니다.\n\n· 일시: 2026. 06. 01.\n· 장소: 가상 체험 회의실\n· 안건\n  1. 조합 결성의 건\n  2. 체험 조합 결성의 건\n\n의결권은 약정액 비율에 따르며, 전체 의결권 기준으로 가결 여부를 판정합니다.",
+        "title": "체험 분배·청산 검증조합 결성총회 소집 통지",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "fund_id": "064e7620-1f81-444b-bfcb-9996c687452b",
+        "sent_at": "2026-10-17T01:20:33.941+00:00",
+        "created_at": "2026-10-17T01:26:57.288114+00:00",
+        "updated_at": "2026-10-17T01:27:01.635349+00:00",
+        "data_source": "gp_api",
+        "notice_type": "meeting",
+        "gp_notice_id": "b7fbc6eb-c0eb-4a9d-bb51-13c5ebe64db4",
+        "gp_ack_sent_at": null,
+        "acknowledged_at": null,
+        "acknowledged_by": null
+      },
+      {
+        "id": "5c33cc85-c081-4fb6-a1c4-9e1402bd46e2",
+        "body": "체험 분배·청산 검증조합 결성총회를 아래와 같이 소집합니다.\n\n· 일시: 2026. 06. 01.\n· 장소: 가상 체험 회의실\n· 안건\n  1. 조합 결성의 건\n  2. 체험 조합 결성의 건\n\n의결권은 약정액 비율에 따르며, 전체 의결권 기준으로 가결 여부를 판정합니다.",
+        "title": "체험 분배·청산 검증조합 결성총회 소집 통지",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "fund_id": "2e0ccafe-7573-47a9-99cd-7f9d3a2d8de6",
+        "sent_at": "2026-10-17T01:20:33.941+00:00",
+        "created_at": "2026-10-17T01:26:56.607811+00:00",
+        "updated_at": "2026-10-17T01:27:04.469349+00:00",
+        "data_source": "gp_api",
+        "notice_type": "meeting",
+        "gp_notice_id": "b7fbc6eb-c0eb-4a9d-bb51-13c5ebe64db4",
+        "gp_ack_sent_at": null,
+        "acknowledged_at": null,
+        "acknowledged_by": null
+      },
+      {
+        "id": "695ded5c-d590-41c6-9d50-74cc65c22eca",
+        "body": "바다성장출자 귀중\n\n체험 분배·청산 검증조합의 최초 납입을 아래와 같이 요청드립니다.\n\n· 요청 금액: 900,000원\n· 요청일: 2026. 05. 20.\n· 납입 기한: 2026. 05. 31.\n· 용도: 체험 조합 최초 납입\n· 요청 후 잔여 약정액: 899,100,000원",
+        "title": "체험 분배·청산 검증조합 최초 납입 요청",
+        "org_id": "0b000000-0000-4000-8000-00000000000b",
+        "fund_id": "2e0ccafe-7573-47a9-99cd-7f9d3a2d8de6",
+        "sent_at": "2026-10-17T01:15:15.291+00:00",
+        "created_at": "2026-10-17T01:26:56.622912+00:00",
+        "updated_at": "2026-10-17T01:27:04.480491+00:00",
+        "data_source": "gp_api",
+        "notice_type": "capital_call",
+        "gp_notice_id": "a2adb50e-dff5-4323-83e4-eb294ab7c898",
+        "gp_ack_sent_at": null,
+        "acknowledged_at": null,
+        "acknowledged_by": null
+      },
+      {
+        "id": "aced2d6d-81ee-4ce8-a693-6493dd35063d",
+        "body": "하늘연금 귀중\n\n체험 분배·청산 검증조합의 제1차 분배를 아래와 같이 안내드립니다.\n\n· 분배 금액: 15,000원\n   - 원금 반환: 15,000원\n· 지급 예정일: 2026. 10. 17.\n· 적용 조건: 기준수익률 연 7%, 성과보수율 20% (규약 버전 1)",
+        "title": "체험 분배·청산 검증조합 제1차 분배 안내",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "fund_id": "064e7620-1f81-444b-bfcb-9996c687452b",
+        "sent_at": "2026-10-17T01:20:33.941+00:00",
+        "created_at": "2026-10-17T01:26:57.293411+00:00",
+        "updated_at": "2026-10-17T01:27:01.641676+00:00",
+        "data_source": "gp_api",
+        "notice_type": "distribution",
+        "gp_notice_id": "7ed74410-e5e0-42d5-9c7a-17c7fb0d5ab5",
+        "gp_ack_sent_at": null,
+        "acknowledged_at": null,
+        "acknowledged_by": null
+      },
+      {
+        "id": "fc33c8c6-0db9-4147-9dcb-393e2456e413",
+        "body": "하늘연금 귀중\n\n체험 분배·청산 검증조합의 최초 납입을 아래와 같이 요청드립니다.\n\n· 요청 금액: 1,000,000원\n· 요청일: 2026. 05. 20.\n· 납입 기한: 2026. 05. 31.\n· 용도: 체험 조합 최초 납입\n· 요청 후 잔여 약정액: 999,000,000원",
+        "title": "체험 분배·청산 검증조합 최초 납입 요청",
+        "org_id": "0a000000-0000-4000-8000-00000000000a",
+        "fund_id": "064e7620-1f81-444b-bfcb-9996c687452b",
+        "sent_at": "2026-10-17T01:15:15.291+00:00",
+        "created_at": "2026-10-17T01:26:57.299287+00:00",
+        "updated_at": "2026-10-17T01:27:01.647696+00:00",
+        "data_source": "gp_api",
+        "notice_type": "capital_call",
+        "gp_notice_id": "3b9c339e-1548-4a98-85a9-9f19954726b7",
+        "gp_ack_sent_at": null,
+        "acknowledged_at": null,
+        "acknowledged_by": null
+      }
+    ]
+  }
+}

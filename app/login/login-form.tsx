@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { withJosa } from "@/lib/format";
 
 type ApiError = { error?: { message?: string } };
 
@@ -12,9 +11,9 @@ const DEMO_ROLES = [
   { role: "admin", label: "관리자", hint: "모든 기능 + 사용자·연동 관리" },
 ] as const;
 
-export default function LoginForm({ orgs }: { orgs: { key: string; name: string }[] }) {
+export default function LoginForm({ orgs }: { orgs: readonly { key: string; label: string; hint: string }[] }) {
   const router = useRouter();
-  const [org, setOrg] = useState(orgs[0]?.key ?? "a");
+  const [demoRole, setDemoRole] = useState("officer");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -46,41 +45,27 @@ export default function LoginForm({ orgs }: { orgs: { key: string; name: string 
   return (
     <div className="space-y-6">
       <section className="space-y-3">
-        <p className="text-sm font-medium text-slate-700">데모로 둘러보기</p>
-        <div role="tablist" aria-label="데모 기관" className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
+        <label className="flex items-center justify-between gap-3 text-sm text-slate-600">
+          체험 역할
+          <select aria-label="체험 역할" value={demoRole} onChange={e => setDemoRole(e.target.value)} disabled={pending !== null} className="rounded-lg border border-slate-300 bg-white px-3 py-2">
+            {DEMO_ROLES.map(r => <option key={r.role} value={r.role}>{r.label}</option>)}
+          </select>
+        </label>
+        <div className="grid gap-2" aria-label="데모 체험">
           {orgs.map((o) => (
             <button
               key={o.key}
               type="button"
-              role="tab"
-              aria-selected={org === o.key}
-              onClick={() => setOrg(o.key)}
-              className={`rounded-md px-3 py-2 text-sm font-medium ${
-                org === o.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {o.name}
-            </button>
-          ))}
-        </div>
-        <div className="grid gap-2">
-          {DEMO_ROLES.map((r) => (
-            <button
-              key={r.role}
-              type="button"
               disabled={pending !== null}
-              onClick={() => submit(`demo-${r.role}`, "/api/v1/auth/demo-login", { org, role: r.role })}
-              className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-left hover:bg-emerald-100 disabled:opacity-60"
+              onClick={() => submit(`demo-${o.key}`, "/api/v1/auth/demo-login", { org: o.key, role: demoRole })}
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-left hover:bg-emerald-100 disabled:opacity-60"
             >
-              <span>
-                <span className="block text-sm font-semibold text-emerald-900">{withJosa(r.label, "으로")} 들어가기</span>
-                <span className="block text-xs text-emerald-700">{r.hint}</span>
-              </span>
-              <span className="text-sm text-emerald-700">{pending === `demo-${r.role}` ? "…" : "→"}</span>
+              <span className="block text-sm font-semibold text-emerald-900">{o.label} {pending === `demo-${o.key}` ? "…" : "→"}</span>
+              <span className="block text-xs text-emerald-700">{o.hint}</span>
             </button>
           ))}
         </div>
-        <p className="text-xs text-slate-500">두 기관의 데이터는 서로 보이지 않습니다. 결재는 담당으로 올리고 결재권자로 승인해 보세요.</p>
+        <p className="text-xs text-slate-500">케이스별 데이터는 분리되어 있습니다. 결재는 출자 담당으로 올린 뒤 결재권자로 전환해 승인하세요.</p>
       </section>
 
       <div className="flex items-center gap-3 text-xs text-slate-400">

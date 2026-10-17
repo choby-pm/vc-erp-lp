@@ -1,0 +1,220 @@
+{
+  "at": "2026-10-17T01:57:01.410Z",
+  "type": "API QA",
+  "passed": 53,
+  "failed": 0,
+  "results": [
+    {
+      "label": "LP start/officer 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP start/officer 계정",
+      "ok": true
+    },
+    {
+      "label": "LP start/officer 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP start/approver 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP start/approver 계정",
+      "ok": true
+    },
+    {
+      "label": "LP start/approver 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP start/admin 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP start/admin 계정",
+      "ok": true
+    },
+    {
+      "label": "LP start/admin 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP complete/officer 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP complete/officer 계정",
+      "ok": true
+    },
+    {
+      "label": "LP complete/officer 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP complete/approver 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP complete/approver 계정",
+      "ok": true
+    },
+    {
+      "label": "LP complete/approver 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP complete/admin 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP complete/admin 계정",
+      "ok": true
+    },
+    {
+      "label": "LP complete/admin 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP continue/officer 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP continue/officer 계정",
+      "ok": true
+    },
+    {
+      "label": "LP continue/officer 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP continue/approver 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP continue/approver 계정",
+      "ok": true
+    },
+    {
+      "label": "LP continue/approver 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "LP continue/admin 로그인",
+      "ok": true
+    },
+    {
+      "label": "LP continue/admin 계정",
+      "ok": true
+    },
+    {
+      "label": "LP continue/admin 시작 상태",
+      "ok": true
+    },
+    {
+      "label": "GP start/author 로그인",
+      "ok": true
+    },
+    {
+      "label": "GP start/author 계정",
+      "ok": true
+    },
+    {
+      "label": "GP start/author 시작 경로",
+      "ok": true
+    },
+    {
+      "label": "GP start/reviewer 로그인",
+      "ok": true
+    },
+    {
+      "label": "GP start/reviewer 계정",
+      "ok": true
+    },
+    {
+      "label": "GP start/reviewer 시작 경로",
+      "ok": true
+    },
+    {
+      "label": "GP complete/author 로그인",
+      "ok": true
+    },
+    {
+      "label": "GP complete/author 계정",
+      "ok": true
+    },
+    {
+      "label": "GP complete/author 시작 경로",
+      "ok": true
+    },
+    {
+      "label": "GP complete/reviewer 로그인",
+      "ok": true
+    },
+    {
+      "label": "GP complete/reviewer 계정",
+      "ok": true
+    },
+    {
+      "label": "GP complete/reviewer 시작 경로",
+      "ok": true
+    },
+    {
+      "label": "GP continue/author 로그인",
+      "ok": true
+    },
+    {
+      "label": "GP continue/author 계정",
+      "ok": true
+    },
+    {
+      "label": "GP continue/author 시작 경로",
+      "ok": true
+    },
+    {
+      "label": "GP continue/reviewer 로그인",
+      "ok": true
+    },
+    {
+      "label": "GP continue/reviewer 계정",
+      "ok": true
+    },
+    {
+      "label": "GP continue/reviewer 시작 경로",
+      "ok": true
+    },
+    {
+      "label": "LP start → complete 접근 차단",
+      "ok": true
+    },
+    {
+      "label": "LP start → continue 접근 차단",
+      "ok": true
+    },
+    {
+      "label": "LP complete → continue 접근 차단",
+      "ok": true
+    },
+    {
+      "label": "LP continue → complete 접근 차단",
+      "ok": true
+    },
+    {
+      "label": "GP 잘못된 케이스·역할 거절",
+      "ok": true
+    },
+    {
+      "label": "GP 잘못된 케이스·역할 거절",
+      "ok": true
+    },
+    {
+      "label": "LP 잘못된 케이스·역할 거절",
+      "ok": true
+    },
+    {
+      "label": "LP 잘못된 케이스·역할 거절",
+      "ok": true
+    }
+  ]
+}

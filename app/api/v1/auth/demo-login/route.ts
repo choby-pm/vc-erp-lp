@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     where email = ${demoEmail(org, role)} and org_id = ${DEMO_ORGS[org].id} and disabled_at is null
   `;
   if (!user) {
-    return fail(404, "NOT_FOUND", "데모 계정이 아직 준비되지 않았습니다 (npm run db:seed)");
+    return fail(404, "NOT_FOUND", "데모 계정이 아직 준비되지 않았습니다. 운영자에게 문의하세요.");
   }
 
   await createSession(user.id);

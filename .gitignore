@@ -53,3 +53,4 @@ skills-lock.json
 
 # QA 실행 결과 (npm run qa:e2e)
 .qa-result.json
+.qa-demo-cases.json

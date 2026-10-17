@@ -75,7 +75,7 @@ try {
   const gFund = (n) => gFunds.find((f) => f.name.startsWith(n));
   const gL = gFund('LP연동'), gD = gFund('딥테크');
   const commitments = async () => (await off('GET', '/commitments')).data;
-  const L = (await commitments()).find((c) => c.origin === 'imported');
+  const L = (await commitments()).find((c) => c.origin === 'imported' && c.fund_name === 'LP연동 데모 벤처투자조합');
 
   // ── 1. LP 계획
   phase('1. LP · 출자 계획');
@@ -171,12 +171,12 @@ ${raw}`).digest('hex');
 
   // ── 5. 캐피탈콜
   phase('5. GP · 캐피탈콜 → LP 납입 → 대사');
-  const gCall = await gp('POST', `/funds/${gL.id}/capital-calls`, { total_call_amount: 15 * 억, call_all_unfunded: false, call_date: today, due_date: '2026-11-16', purpose: 'QA 제5차 출자' });
+  const gCall = await gp('POST', `/funds/${gL.id}/capital-calls`, { total_call_amount: 15 * 억, call_all_unfunded: false, call_date: today, due_date: '2026-11-16', purpose: 'QA 추가 출자' });
   const gIssue = gCall.data?.id ? await gp('POST', `/funds/${gL.id}/capital-calls/${gCall.data.id}/issue`, {}) : { status: 0 };
   const gItem = (gIssue.data?.items ?? []).find((i) => (i.member_name ?? i.lp_name ?? '').includes('하늘'));
-  check('Q5-1', 'GP 5회 콜 작성 · 발송, 하늘 몫 5억', gCall.status === 201 && gIssue.status === 200 && Number(gItem?.call_amount) === 5 * 억, `${gCall.status}/${gIssue.status} ${gCall.error?.message ?? gIssue.error?.message ?? ''} · 하늘 ${Number(gItem?.call_amount) / 억}억`);
+  check('Q5-1', 'GP 추가 콜 작성 · 발송, 하늘 몫 5억', gCall.status === 201 && gIssue.status === 200 && Number(gItem?.call_amount) === 5 * 억, `${gCall.status}/${gIssue.status} ${gCall.error?.message ?? gIssue.error?.message ?? ''} · 하늘 ${Number(gItem?.call_amount) / 억}억`);
   const lpCall = await poll(async () => list(await off('GET', '/capital-calls?status=all')).find((c) => c.commitment_id === L.id && c.call_no === gCall.data?.call_no), Boolean);
-  check('Q5-2 🔗', 'LP 5회 콜 수신 (웹훅) · 금액 · 기한', lpCall && lpCall.call_amount === 5 * 억 && lpCall.due_date === '2026-11-16', lpCall ? `${lpCall.call_no}회 ${lpCall.call_amount / 억}억 기한 ${lpCall.due_date}` : '안 들어옴');
+  check('Q5-2 🔗', 'LP 추가 콜 수신 (웹훅) · 금액 · 기한', lpCall && lpCall.call_amount === 5 * 억 && lpCall.due_date === '2026-11-16', lpCall ? `${lpCall.call_no}회 ${lpCall.call_amount / 억}억 기한 ${lpCall.due_date}` : '안 들어옴');
   const over = await off('POST', `/capital-calls/${lpCall.id}/payments`, { amount: 6 * 억 });
   check('Q5-3 ⛔', '남은 금액보다 큰 납입 기안 거부', over.status >= 400 && over.status < 500, `${over.status} ${over.error?.code ?? ''}`);
   const pay = await off('POST', `/capital-calls/${lpCall.id}/payments`, { amount: 5 * 억 });
@@ -240,7 +240,8 @@ ${raw}`).digest('hex');
   const recv = await off('POST', `/distributions/${d2.id}/receive`, { received_date: today });
   const dr2 = (await totals()).find((x) => x.entry_type === 'distribution');
   const alerts2 = (await off('GET', '/dashboard')).data.alerts;
-  check('Q7-4 🔗', '수령 기록 → 분배 대사 일치 · 주의 목록에서 빠짐', recv.status === 200 && dr2.recon?.recon_status === 'matched' && !alerts2.some((a) => a.key === 'distributions'), `${(dr2.our_amount / 억).toFixed(2)} / ${(dr2.gp_amount / 억).toFixed(2)} ${dr2.recon?.recon_status}`);
+  const targetDistributionPending = alerts2.some((a) => a.key === 'distributions' && a.items.some((item) => item.title === `${L.fund_name} · ${d2.distribution_no}회`));
+  check('Q7-4 🔗', '수령 기록 → 분배 대사 일치 · 대상 분배가 주의 목록에서 빠짐', recv.status === 200 && dr2.recon?.recon_status === 'matched' && !targetDistributionPending, `${(dr2.our_amount / 억).toFixed(2)} / ${(dr2.gp_amount / 억).toFixed(2)} ${dr2.recon?.recon_status}`);
 
   // ── 8. 성과
   phase('8. 성과 · 대시보드');

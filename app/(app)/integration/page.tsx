@@ -40,7 +40,7 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-slate-900">GP 연동</h1>
           <p className="mt-1 text-sm text-slate-500">
-            연동된 GP 시스템이 보내는 소식(웹훅)과 놓친 소식 가져오기. 받은 이벤트는 GP API로 다시 읽어 조합·제안·원장에 반영합니다.
+            연결된 운용사의 데이터 갱신 상태를 확인하고, 최신 내용을 가져옵니다.
           </p>
         </div>
         {links.length > 0 && <PullButton />}
@@ -48,7 +48,7 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
 
       {links.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-          연동된 GP가 없습니다. 연동 설정은 서비스 운영자가 <code className="rounded bg-slate-100 px-1">npm run gp:link</code> 로 넣습니다.
+          연결된 운용사가 없습니다. 연결이 필요하면 서비스 운영자에게 문의하세요.
         </div>
       ) : (
         <section className="grid gap-4 lg:grid-cols-2">
@@ -57,7 +57,7 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-slate-900">{l.connection_name}</h2>
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${l.env_configured ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
-                  {l.env_configured ? "설정 완료" : "환경 변수 없음"}
+                  {l.env_configured ? "연결 준비 완료" : "연결 설정 확인 필요"}
                 </span>
               </div>
               <dl className="mt-3 grid grid-cols-[130px_1fr] gap-y-1.5 text-sm">
@@ -67,24 +67,26 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
                     {l.gp_name}
                   </Link>
                 </dd>
-                <dt className="text-slate-500">GP의 우리 출자자</dt>
-                <dd className="font-mono text-xs leading-5 text-slate-700">{l.gp_lp_id_prefix}…</dd>
-                <dt className="text-slate-500">GP 주소 변수</dt>
-                <dd className="font-mono text-xs leading-5 text-slate-700">{l.base_url_env}</dd>
-                <dt className="text-slate-500">웹훅 받는 주소</dt>
-                <dd className="break-all font-mono text-xs leading-5 text-slate-700">{l.webhook_path}</dd>
                 <dt className="text-slate-500">연결</dt>
                 <dd className="text-slate-700">{formatDateTime(l.linked_at)}</dd>
                 <dt className="text-slate-500">마지막 가져오기</dt>
                 <dd className="text-slate-700">{l.last_pulled_at ? formatDateTime(l.last_pulled_at) : "아직 없음"}</dd>
               </dl>
+              <details className="mt-3 text-xs text-slate-500">
+                <summary className="cursor-pointer">운영자용 연결 상세</summary>
+                <dl className="mt-2 space-y-1 break-all">
+                  <dt>출자자 식별자</dt><dd>{l.gp_lp_id_prefix}…</dd>
+                  <dt>주소 설정 변수</dt><dd>{l.base_url_env}</dd>
+                  <dt>수신 경로</dt><dd>{l.webhook_path}</dd>
+                </dl>
+              </details>
             </div>
           ))}
         </section>
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-semibold text-slate-900">받은 이벤트 (우리 기관 것만)</h2>
+        <h2 className="text-base font-semibold text-slate-900">데이터 갱신 현황</h2>
         <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {STATUSES.map((s) => (
             <div key={s} className={`rounded-xl px-4 py-3 ${INBOUND_STATUS_STYLE[s]}`}>
@@ -104,8 +106,7 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
           </p>
         )}
         <p className="mt-2 text-xs text-slate-500">
-          GP가 소식을 보내면 바로 받아 저장하고 GP API로 다시 읽어 반영합니다. 놓친 것은 하루 한 번 주기 작업이 가져와 처리하고, 위 버튼으로 지금 할 수도 있습니다. 실패하면 1분 → 5분 → 30분 → 2시간 → 12시간 뒤 다시 처리하고 5번 실패하면 멈춥니다. 연결 전에 GP에서 생긴 이벤트는 저장하지 않습니다
-          (연결할 때 GP 데이터를 통째로 읽어 맞추므로).
+          변경 사항은 자동으로 반영됩니다. 최신 정보가 보이지 않으면 ‘지금 가져오기’를 눌러 주세요. 실패한 항목은 아래에서 다시 처리할 수 있습니다.
         </p>
       </section>
 
@@ -183,8 +184,7 @@ export default async function IntegrationPage(props: PageProps<"/integration">) 
                 <tr key={e.id}>
                   <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500">{formatDateTime(e.occurred_at)}</td>
                   <td className="px-4 py-2.5">
-                    <div className="text-slate-800">{GP_EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</div>
-                    <div className="font-mono text-[11px] text-slate-400">{e.event_type}</div>
+                    <div className="text-slate-800">{GP_EVENT_TYPE_LABEL[e.event_type] ?? "기타 변경"}</div>
                   </td>
                   <td className="px-4 py-2.5 text-slate-700">{e.scope === "lp" ? "우리 출자자" : (e.fund_name ?? "조합 전체")}</td>
                   <td className="px-4 py-2.5 text-slate-600">{e.received_via === "webhook" ? "웹훅" : "가져오기"}</td>

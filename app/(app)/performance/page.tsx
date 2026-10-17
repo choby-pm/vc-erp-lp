@@ -59,7 +59,7 @@ export default async function PerformancePage(props: PageProps<"/performance">) 
         <div>
           <h1 className="text-2xl font-bold text-slate-900">성과</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {formatDate(asOf)} 기준 · 우리 장부 · 활성·청산 출자 건 {t.count}건. 평가액은 최근 보고 + 이후 납입 − 이후 분배 (L40 ⚠️ 단순화)
+            {formatDate(asOf)} 기준 · 우리 장부 · 활성·청산 출자 건 {t.count}건. 평가액은 최근 보고 + 이후 납입 − 이후 분배 (⚠️ 단순화)
           </p>
         </div>
         <form className="flex items-center gap-2 text-sm text-slate-500">
@@ -168,7 +168,7 @@ export default async function PerformancePage(props: PageProps<"/performance">) 
           </div>
         )}
       </section>
-      <p className="text-xs text-slate-400">IRR에 마우스를 올리면 계산하지 않은 이유가 보입니다. 결성 대기·선정 취소 출자 건은 뺍니다. 차트는 R7 대시보드에서.</p>
+      <p className="text-xs text-slate-400">IRR에 마우스를 올리면 계산하지 않은 이유가 보입니다. 결성 대기·선정 취소 출자 건은 뺍니다. 차트는 대시보드에서 확인하세요.</p>
     </div>
   );
 }

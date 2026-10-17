@@ -42,7 +42,7 @@ export default async function BudgetDetailPage(props: PageProps<"/budgets/[budge
       <AllocationEditor budgetId={budget.id} total={budget.total_amount} rows={budget.strategies} canWrite={canWrite} />
 
       <p className="text-xs text-slate-500">
-        사용액은 이 예산으로 선정된 출자 예정액(선정 결재 승인 + 결재 대기)의 합계입니다. 선정이 취소되면 예산이 다시 생깁니다. 선정 기능은 R2-4에서 추가됩니다.
+        사용액은 이 예산으로 선정된 출자 예정액(선정 결재 승인 + 결재 대기)의 합계입니다. 선정이 취소되면 예산이 다시 생깁니다.
       </p>
     </div>
   );

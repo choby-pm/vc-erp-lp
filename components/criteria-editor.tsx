@@ -59,7 +59,7 @@ function Row({ c }: { c: Criterion }) {
           <button
             type="button"
             onClick={async () => {
-              if (!confirm(`'${c.name}' 항목을 은퇴시킬까요? 새 평가에는 쓰지 않고, 이미 쓴 평가표 점수는 남습니다.`)) return;
+              if (!confirm(`'${c.name}' 항목의 사용을 중지할까요? 새 평가에는 쓰지 않고, 이미 쓴 평가표 점수는 남습니다.`)) return;
               try {
                 await send(`/api/v1/evaluation-criteria/${c.id}/retire`, "POST");
                 router.refresh();
@@ -69,7 +69,7 @@ function Row({ c }: { c: Criterion }) {
             }}
             className="text-rose-700 hover:underline"
           >
-            은퇴
+            사용 중지
           </button>
         </span>
       </td>
@@ -144,7 +144,7 @@ export default function CriteriaEditor({ criteria, weightSum }: { criteria: Crit
 
       {retired.length > 0 && (
         <section className="rounded-2xl border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-5 py-3 text-sm font-semibold text-slate-500">은퇴한 항목 (과거 평가표에만 남음)</h2>
+          <h2 className="border-b border-slate-200 px-5 py-3 text-sm font-semibold text-slate-500">사용 중지한 항목 (과거 평가표에만 남음)</h2>
           <ul className="divide-y divide-slate-100 text-sm text-slate-500">
             {retired.map((c) => (
               <li key={c.id} className="flex justify-between px-5 py-2">

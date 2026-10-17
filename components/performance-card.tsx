@@ -45,7 +45,7 @@ export default function PerformanceCard({ p, asOfForm }: { p: Performance; asOfF
       </dl>
       {!p.nav.missing && p.nav.report_period_end && (
         <p className="text-xs text-slate-500">
-          평가액 = {formatDate(p.nav.report_period_end)} 보고의 우리 몫 {formatKRW(p.nav.reported_amount)} + 이후 납입 {formatKRW(p.nav.contributions_after)} − 이후 분배 {formatKRW(p.nav.distributions_after)} (L40 ⚠️ 단순화)
+          평가액 = {formatDate(p.nav.report_period_end)} 보고의 우리 몫 {formatKRW(p.nav.reported_amount)} + 이후 납입 {formatKRW(p.nav.contributions_after)} − 이후 분배 {formatKRW(p.nav.distributions_after)} (⚠️ 단순화)
         </p>
       )}
       <details>

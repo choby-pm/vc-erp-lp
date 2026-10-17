@@ -249,7 +249,7 @@ function VoteApproval({ a, me, canDecide,orgName }: { a: Awaited<ReturnType<type
         </ol>
       </section>
       <p className="text-xs text-slate-500">
-        {s.meeting.data_source === "gp_api" ? "승인하면 GP에 바로 투표가 제출됩니다. 검토 의견은 GP에 보내지 않습니다 (BR-VOTE-03·04)." : "수기 총회라 승인 뒤 서면으로 내고 \"서면 제출 완료\"를 기록합니다."}
+        {s.meeting.data_source === "gp_api" ? "승인하면 GP에 바로 투표가 제출됩니다. 검토 의견은 GP에 보내지 않습니다." : "수기 총회라 승인 뒤 서면으로 내고 \"서면 제출 완료\"를 기록합니다."}
       </p>
       {a.status !== "pending" && (
         <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm">

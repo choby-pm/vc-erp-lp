@@ -38,7 +38,7 @@ export default async function GpDetailPage(props: PageProps<"/gps/[gpId]">) {
 
       {gp.is_linked && (
         <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          <b>{gp.connection_name}</b> 시스템과 연동된 운용사입니다. 이 GP의 조합·캐피탈콜·분배·보고는 GP에서 자동으로 들어옵니다 (R3).
+          <b>{gp.connection_name}</b> 시스템과 연동된 운용사입니다. 이 GP의 조합·캐피탈콜·분배·보고는 GP에서 자동으로 들어옵니다.
         </p>
       )}
 

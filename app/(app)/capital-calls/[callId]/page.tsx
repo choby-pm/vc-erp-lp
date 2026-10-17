@@ -71,7 +71,7 @@ export default async function CapitalCallDetailPage(props: PageProps<"/capital-c
 
       {linked && c.paid_amount > 0 && (c.gp_paid_amount ?? 0) < c.paid_amount && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          우리는 {formatKRW(c.paid_amount)}을 보냈는데 GP는 아직 {formatKRW(c.gp_paid_amount)}만 받은 것으로 봅니다. GP가 은행 입금을 확인해 기록하면 맞춰집니다 (송금 뒤 7일은 확인 대기, L10·L28).
+          우리는 {formatKRW(c.paid_amount)}을 보냈는데 GP는 아직 {formatKRW(c.gp_paid_amount)}만 받은 것으로 봅니다. GP가 은행 입금을 확인해 기록하면 맞춰집니다 (송금 뒤 7일은 확인 대기).
         </p>
       )}
 
@@ -100,7 +100,7 @@ export default async function CapitalCallDetailPage(props: PageProps<"/capital-c
                 <tr key={p.id} className="align-top">
                   <td className="py-2.5 text-slate-700">
                     {p.origin === "imported" ? (
-                      <span className="text-xs text-slate-500">가져온 납입 (GP 원장 근거, 결재 없음 · L27)</span>
+                      <span className="text-xs text-slate-500">가져온 납입 (GP 원장 근거, 결재 없음)</span>
                     ) : (
                       <>
                         {p.created_by_name ?? "-"}
